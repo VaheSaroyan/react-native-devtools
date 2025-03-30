@@ -48,7 +48,11 @@ export function useSyncQueriesWeb({
   useEffect(() => {
     selectedDeviceRef.current = selectedDevice;
 
-    if (socket.connected) {
+    if (
+      socket.connected &&
+      selectedDeviceRef.current &&
+      selectedDeviceRef.current !== "No users available"
+    ) {
       const queryInitialStateMessage: QueryRequestInitialStateMessage = {
         targetDevice: selectedDeviceRef.current,
       };
@@ -69,15 +73,29 @@ export function useSyncQueriesWeb({
     // Subscribe to online manager changes
     onlineManager.subscribe((isOnline: boolean) => {
       console.log("Online manager changed", isOnline);
-      socket.emit("online-manager", {
-        action: isOnline
-          ? "ACTION-ONLINE-MANAGER-ONLINE"
-          : "ACTION-ONLINE-MANAGER-OFFLINE",
-        targetDevice: selectedDeviceRef.current,
-      });
+      // Only emit if we have a valid selectedDevice
+      if (
+        selectedDeviceRef.current &&
+        selectedDeviceRef.current !== "No users available"
+      ) {
+        socket.emit("online-manager", {
+          action: isOnline
+            ? "ACTION-ONLINE-MANAGER-ONLINE"
+            : "ACTION-ONLINE-MANAGER-OFFLINE",
+          targetDevice: selectedDeviceRef.current,
+        });
+      }
     });
     // Subscribe to query actions from the dashboard to the devices
     const querySubscription = queryClient.getQueryCache().subscribe((event) => {
+      // Only proceed if we have a valid selectedDevice
+      if (
+        !selectedDeviceRef.current ||
+        selectedDeviceRef.current === "No users available"
+      ) {
+        return;
+      }
+
       switch (event.type) {
         case "updated":
           switch (event.action.type as QueryActions) {

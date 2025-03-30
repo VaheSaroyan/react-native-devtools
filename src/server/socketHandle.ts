@@ -75,7 +75,8 @@ export default function socketHandle({ io }: Props) {
     const { deviceName } = socket.handshake.query as {
       deviceName: string | undefined;
     };
-
+    console.log("New connection", socket.id);
+    console.log("deviceName", deviceName);
     addNewUser({
       id: socket.id,
       deviceName: deviceName || "Unknown Device Name",
@@ -109,6 +110,12 @@ export default function socketHandle({ io }: Props) {
     });
     // query changes from the dashboard to the devices
     socket.on("query-action", (message: QueryActionMessage) => {
+      // Check if message exists before accessing properties
+      if (!message) {
+        console.error("Error: query-action message is undefined");
+        return;
+      }
+
       // Find the target device and send only to that device
       const targetUser = users.find(
         (user) => user.deviceName === message.targetDevice
@@ -134,6 +141,12 @@ export default function socketHandle({ io }: Props) {
       "request-initial-state",
       (message: QueryRequestInitialStateMessage) => {
         console.log("request-initial-state", message);
+        // Check if message exists before accessing properties
+        if (!message) {
+          console.error("Error: request-initial-state message is undefined");
+          return;
+        }
+
         // Find the target device and send only to that device
         console.log("--users", users);
         const targetUser = users.find(
