@@ -44,10 +44,13 @@ export default function socketHandle({ io }: Props) {
   }
   io.on("connection", (socket: Socket) => {
     // Get the query parameters from the handshake
-    const { deviceName } = socket.handshake.query as { deviceName: string };
+    const { deviceName } = socket.handshake.query as {
+      deviceName: string | undefined;
+    };
+
     addNewUser({
       id: socket.id,
-      deviceName,
+      deviceName: deviceName || "Unknown Device Name",
     });
     // Handle the disconnect event
     socket.on("disconnect", () => handleClose(socket.id));

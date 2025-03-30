@@ -11,9 +11,7 @@ import { UserInfo } from "./UserInfo";
 export const App: React.FC = () => {
   const { users, isConnected, socket } = useConnectedUsers({
     query: {
-      username: "Dashboard",
-      userType: "dashboard",
-      clientType: "server",
+      deviceName: "Dashboard",
     },
     socketURL: CLIENT_URL,
   });
