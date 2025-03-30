@@ -1,6 +1,19 @@
-import type { DefaultError, Mutation, MutationOptions, Query, QueryClient, QueryOptions } from '@tanstack/react-query';
+import type {
+  DefaultError,
+  Mutation,
+  MutationOptions,
+  Query,
+  QueryClient,
+  QueryFunction,
+  QueryOptions,
+} from "@tanstack/react-query";
 
-import { DehydratedMutation, DehydratedQuery, DehydratedState, ObserverState } from './types';
+import {
+  DehydratedMutation,
+  DehydratedQuery,
+  DehydratedState,
+  ObserverState,
+} from "./types";
 type TransformerFn = (data: unknown) => unknown;
 
 export function Dehydrate(client: QueryClient): DehydratedState {
@@ -47,7 +60,7 @@ function dehydrateQuery(query: Query): DehydratedQuery {
     queryHash: query.queryHash,
     options: observer.options,
     // Remove queryFn from observer options to prevent not being able to capture fetch action
-    queryFn: undefined,
+    queryFn: undefined as unknown as QueryFunction,
   }));
 
   return {
