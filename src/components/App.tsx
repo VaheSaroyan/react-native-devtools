@@ -4,9 +4,10 @@ import useConnectedUsers from "./_hooks/useConnectedUsers";
 import { User } from "../types/User";
 import "../index.css";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import Providers from "../providers";
+
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
+import Providers from "./external-dash/providers";
 
 export const App: React.FC = () => {
   const { users, isConnected, socket } = useConnectedUsers({
@@ -37,7 +38,11 @@ export const App: React.FC = () => {
   }, [users]);
 
   return (
-    <Providers>
+    <Providers
+      setDevices={setClientUsers}
+      selectedDevice={username}
+      socket={socket}
+    >
       <div className="flex flex-col w-full h-full bg-gray-900 text-gray-200">
         <header className="w-full px-4 py-3 border-b border-gray-700 flex justify-between items-center">
           <div className="flex items-center gap-2">

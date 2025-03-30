@@ -34,7 +34,7 @@ export const DeviceSelection: React.FC<Props> = ({
   // Generate user options
   const userOptions = [
     { value: "All", label: "All" },
-    ...(users.length === 0
+    ...(users?.length === 0
       ? [{ value: "", label: "No users available", disabled: true }]
       : users.map((user) => ({
           value: user.deviceName || "Unknown Device Name",

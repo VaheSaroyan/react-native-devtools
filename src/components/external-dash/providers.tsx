@@ -32,7 +32,6 @@ export default function Providers({
         },
       })
   );
-
   useSyncQueriesWeb({ queryClient, setDevices, selectedDevice, socket });
 
   return (

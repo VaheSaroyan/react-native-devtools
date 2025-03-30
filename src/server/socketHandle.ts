@@ -1,17 +1,26 @@
 import { Socket, Server as SocketIOServer } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { User } from "../types/User";
+import { SyncMessage } from "../components/external-dash/shared/types";
+import { QueryActionMessage } from "../components/external-dash/useSyncQueriesWeb";
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   io: SocketIOServer<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>;
 }
 let users = [] as User[]; // Connected users
+// Keep track of dashboard client IDs
+let dashboardClients = [] as string[];
 
+// This is the server side of the socket handle which
+// Will forward requests from device to the dashboard
+// and vice versa
 export default function socketHandle({ io }: Props) {
   function handleClose(id: string) {
     // Remove user from the list
     users = users.filter((user: User) => user.id !== id);
+    // Remove from dashboard clients if it exists
+    dashboardClients = dashboardClients.filter((clientId) => clientId !== id);
     // Sends new list of users to everyone connected
     io.emit("users-update", users);
   }
@@ -37,11 +46,25 @@ export default function socketHandle({ io }: Props) {
         id: id,
         deviceName: deviceName,
       });
+
+    // Check if this is a dashboard client
+    if (deviceName === "Dashboard" && id) {
+      dashboardClients.push(id);
+    }
+
     io.emit("users-update", users);
   }
   function handleUserMessage(message: string, deviceName: string) {
     io.emit("message", `Device ${deviceName} sent message: ${message}`);
   }
+
+  // Helper function to forward query-sync messages only to dashboard clients
+  function forwardQuerySyncToDashboards(message: SyncMessage) {
+    dashboardClients.forEach((dashboardId) => {
+      io.to(dashboardId).emit("query-sync", message);
+    });
+  }
+
   io.on("connection", (socket: Socket) => {
     // Get the query parameters from the handshake
     const { deviceName } = socket.handshake.query as {
@@ -72,5 +95,16 @@ export default function socketHandle({ io }: Props) {
         io.to(targetClientId).emit("message", message);
       }
     );
+
+    // Listen for query-sync messages from devices and forward only to dashboard clients
+    socket.on("query-sync", (message: SyncMessage) => {
+      console.log("query-sync", message);
+      // Only forward to dashboard clients, not back to devices
+      forwardQuerySyncToDashboards(message);
+    });
+    // query changes from the dashboard to the devices
+    socket.on("query-action", (message: QueryActionMessage) => {
+      console.log("query-action", message);
+    });
   });
 }

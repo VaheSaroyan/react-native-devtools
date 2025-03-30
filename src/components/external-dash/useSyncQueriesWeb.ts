@@ -17,7 +17,7 @@ type QueryActions =
   | "ACTION-DATA-UPDATE"
   | "success";
 
-interface QueryActionMessage {
+export interface QueryActionMessage {
   queryHash: string;
   queryKey: QueryKey;
   data: unknown;
@@ -45,11 +45,12 @@ export function useSyncQueriesWeb({
   useEffect(() => {
     selectedDeviceRef.current = selectedDevice;
 
-    if (socket) {
+    if (socket.connected) {
       // Clear all Query cache and mutations when device changes
       queryClient.clear();
+      console.log("Cleared query cache");
       // Request fresh state from devices
-      socket.send("request-initial-state", {
+      socket.emit("request-initial-state", {
         type: "initial-state-request",
       });
     }
@@ -63,17 +64,19 @@ export function useSyncQueriesWeb({
     console.log("Connected");
     // Subscribe to online manager changes
     onlineManager.subscribe((isOnline: boolean) => {
-      socket.send("online-manager", {
+      console.log("Online manager changed", isOnline);
+      socket.emit("online-manager", {
         action: isOnline
           ? "ACTION-ONLINE-MANAGER-ONLINE"
           : "ACTION-ONLINE-MANAGER-OFFLINE",
         targetDevice: selectedDeviceRef.current,
       });
     });
-    // Subscribe to query changes
+    // Subscribe to query changes from the dashboard to the devices
     const querySubscription = queryClient.getQueryCache().subscribe((event) => {
       switch (event.type) {
         case "updated":
+          console.log("query-action", event);
           switch (event.action.type as QueryActions) {
             case "ACTION-REFETCH":
             case "ACTION-INVALIDATE":
@@ -83,7 +86,7 @@ export function useSyncQueriesWeb({
             case "ACTION-REMOVE":
             case "ACTION-TRIGGER-LOADING":
             case "ACTION-RESTORE-LOADING":
-              socket.send("query-action", {
+              socket.emit("query-action", {
                 queryHash: event.query.queryHash,
                 queryKey: event.query.queryKey,
                 action: event.action.type as QueryActions,
@@ -94,7 +97,7 @@ export function useSyncQueriesWeb({
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               if (event.action.manual) {
-                socket.send("query-action", {
+                socket.emit("query-action", {
                   queryHash: event.query.queryHash,
                   queryKey: event.query.queryKey,
                   data: event.query.state.data,
@@ -107,13 +110,14 @@ export function useSyncQueriesWeb({
       }
     });
 
-    // Subscribe to query sync messages
+    // Subscribe to query sync messages from the devices to the dashboard
     socket.on("query-sync", (message: SyncMessage) => {
+      console.log("query-sync", message);
       if (message.type === "dehydrated-state") {
         // Only process data if it's from the selected device or if "all" is selected
         if (
           selectedDeviceRef.current === "All" ||
-          message.Device.id === selectedDeviceRef.current
+          message.deviceName === selectedDeviceRef.current
         ) {
           // Sync online manager state
           onlineManager.setOnline(message.isOnlineManagerOnline);
@@ -123,9 +127,9 @@ export function useSyncQueriesWeb({
     });
 
     // Subscribe to device changes
-    socket.on("users-update", (response: { users: User[] }) => {
-      console.log("users-update", response);
-      setDevices(response.users);
+    socket.on("users-update", (users: User[]) => {
+      console.log("users-update", users);
+      setDevices(users);
     });
 
     // Cleanup all subscriptions
