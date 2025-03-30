@@ -72,7 +72,7 @@ export function useSyncQueriesWeb({
         targetDevice: selectedDeviceRef.current,
       });
     });
-    // Subscribe to query changes from the dashboard to the devices
+    // Subscribe to query actions from the dashboard to the devices
     const querySubscription = queryClient.getQueryCache().subscribe((event) => {
       switch (event.type) {
         case "updated":
@@ -84,37 +84,38 @@ export function useSyncQueriesWeb({
             case "ACTION-RESET":
             case "ACTION-REMOVE":
             case "ACTION-TRIGGER-LOADING":
-            case "ACTION-RESTORE-LOADING":
-              console.log("Dashboard query-action", event.action.type);
-              console.log("Target device", selectedDeviceRef.current);
-              socket.emit("query-action", {
+            case "ACTION-RESTORE-LOADING": {
+              const queryActionMessage: QueryActionMessage = {
                 action: event.action.type as QueryActions,
                 targetDevice: selectedDeviceRef.current,
                 queryHash: event.query.queryHash,
                 queryKey: event.query.queryKey,
                 data: event.query.state.data,
-              });
+              };
+              socket.emit("query-action", queryActionMessage);
               break;
-            case "success":
+            }
+            case "success": {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
+              // @ts-expect-error This does exist
               if (event.action.manual) {
-                socket.emit("query-action", {
+                const queryActionMessage: QueryActionMessage = {
+                  action: "ACTION-DATA-UPDATE",
+                  targetDevice: selectedDeviceRef.current,
                   queryHash: event.query.queryHash,
                   queryKey: event.query.queryKey,
                   data: event.query.state.data,
-                  action: "ACTION-DATA-UPDATE",
-                  targetDevice: selectedDeviceRef.current,
-                } as QueryActionMessage);
+                };
+                socket.emit("query-action", queryActionMessage);
               }
               break;
+            }
           }
       }
     });
 
     // Subscribe to query sync messages from the devices to the dashboard
     socket.on("query-sync", (message: SyncMessage) => {
-      console.log("query-sync", message);
       if (message.type === "dehydrated-state") {
         // Only process data if it's from the selected device or if "all" is selected
         if (
@@ -128,9 +129,8 @@ export function useSyncQueriesWeb({
       }
     });
 
-    // Subscribe to device changes
+    // Subscribe to device changes from the server
     socket.on("users-update", (users: User[]) => {
-      console.log("users-update", users);
       setDevices(users);
     });
 
@@ -140,7 +140,7 @@ export function useSyncQueriesWeb({
       socket.off("users-update");
       querySubscription();
     };
-  }, [queryClient, socket]); // Keep dependencies minimal
+  }, [queryClient, socket]);
 
   return { isConnected: !!socket };
 }
