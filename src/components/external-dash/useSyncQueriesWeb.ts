@@ -24,7 +24,10 @@ export interface QueryActionMessage {
   action: QueryActions;
   targetDevice: string;
 }
-
+// Query request initial state from the devices
+export interface QueryRequestInitialStateMessage {
+  targetDevice: string;
+}
 interface Props {
   queryClient: QueryClient;
   setDevices: React.Dispatch<React.SetStateAction<User[]>>;
@@ -46,13 +49,14 @@ export function useSyncQueriesWeb({
     selectedDeviceRef.current = selectedDevice;
 
     if (socket.connected) {
+      const queryInitialStateMessage: QueryRequestInitialStateMessage = {
+        targetDevice: selectedDeviceRef.current,
+      };
+      console.log("Requesting initial state from the dashboard");
       // Clear all Query cache and mutations when device changes
       queryClient.clear();
-      console.log("Cleared query cache");
       // Request fresh state from devices
-      socket.emit("request-initial-state", {
-        type: "initial-state-request",
-      });
+      socket.emit("request-initial-state", queryInitialStateMessage);
     }
   }, [selectedDevice, socket, queryClient]);
 

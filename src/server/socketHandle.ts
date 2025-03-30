@@ -4,7 +4,10 @@ import { Socket, Server as SocketIOServer } from "socket.io";
 type DefaultEventsMap = Record<string, (...args: any[]) => void>;
 import { User } from "../types/User";
 import { SyncMessage } from "../components/external-dash/shared/types";
-import { QueryActionMessage } from "../components/external-dash/useSyncQueriesWeb";
+import {
+  QueryActionMessage,
+  QueryRequestInitialStateMessage,
+} from "../components/external-dash/useSyncQueriesWeb";
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,9 +109,6 @@ export default function socketHandle({ io }: Props) {
     });
     // query changes from the dashboard to the devices
     socket.on("query-action", (message: QueryActionMessage) => {
-      console.log("Serverquery-action--", message.action);
-      console.log("Target device", message.targetDevice);
-      console.log("All devices", users);
       // Find the target device and send only to that device
       const targetUser = users.find(
         (user) => user.deviceName === message.targetDevice
@@ -129,5 +129,39 @@ export default function socketHandle({ io }: Props) {
         console.log(`Target device ${message.targetDevice} not found`);
       }
     });
+    // Dashboard requests initial state from the devices
+    socket.on(
+      "request-initial-state",
+      (message: QueryRequestInitialStateMessage) => {
+        console.log("request-initial-state", message);
+        // Find the target device and send only to that device
+        console.log("--users", users);
+        const targetUser = users.find(
+          (user) => user.deviceName === message.targetDevice
+        );
+        console.log("--targetUser", targetUser);
+        if (targetUser) {
+          // Send to the specific target device ID
+          console.log(
+            "Requesting initial state from the dashboard to the target device"
+          );
+          io.to(targetUser.id).emit("request-initial-state", {
+            type: "request-initial-state",
+          });
+        } else if (message.targetDevice === "All") {
+          console.log("Broadcasting to all devices");
+          // Broadcast to all non-dashboard clients
+          users
+            .filter((user) => user.deviceName !== "Dashboard")
+            .forEach((user) => {
+              io.to(user.id).emit("request-initial-state", {
+                type: "request-initial-state",
+              });
+            });
+        } else {
+          console.log(`Target device ${message.targetDevice} not found`);
+        }
+      }
+    );
   });
 }
