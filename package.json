@@ -1,8 +1,8 @@
 {
   "name": "rn-better-dev-tools",
-  "productName": "rn-better-dev-tools",
+  "productName": "React Native Better DevTools",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Enhanced developer tools for React Native applications (Only supports React Query DevTools Right Now)",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
