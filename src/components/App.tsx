@@ -19,14 +19,6 @@ export const App: React.FC = () => {
   const [username, setUsername] = useState("Please select a user");
   const [currentUser, setCurrentUser] = useState<User>();
   const [clientUsers, setClientUsers] = useState<User[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
-
-  const handleSendMessage = () => {
-    if (socket && inputMessage.trim() !== "") {
-      socket.emit("message", inputMessage);
-      setInputMessage("");
-    }
-  };
 
   useEffect(() => {
     const foundUser = users.find((user) => user.deviceName === username);
@@ -71,47 +63,6 @@ export const App: React.FC = () => {
             clientUsers.map((user) => (
               <UserInfo key={user.id} userData={user} />
             ))}
-
-          {/* Message input section */}
-          <div className="bg-gray-800 rounded-lg shadow-md p-4 border border-gray-700">
-            <div className="flex mb-4">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 p-2 bg-gray-700 border border-gray-600 rounded-l text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!isConnected || inputMessage.trim() === ""}
-                className={`px-4 py-2 rounded-r ${
-                  isConnected && inputMessage.trim() !== ""
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                Send
-              </button>
-            </div>
-
-            {/* Connection status info */}
-            <div className="flex items-center justify-between text-sm text-gray-400 font-mono">
-              <span>
-                {currentUser ? (
-                  <span className="text-green-400">CONNECTED</span>
-                ) : (
-                  <span className="text-red-400">DISCONNECTED</span>
-                )}
-              </span>
-              <span>
-                {isConnected
-                  ? `Server: ${CLIENT_URL}`
-                  : "Server: Not connected"}
-              </span>
-            </div>
-          </div>
         </main>
       </div>
       <ReactQueryDevtools initialIsOpen />
