@@ -37,8 +37,8 @@ export const DeviceSelection: React.FC<Props> = ({
     ...(users.length === 0
       ? [{ value: "", label: "No users available", disabled: true }]
       : users.map((user) => ({
-          value: user.username || "Unknown",
-          label: user.username || "Unknown",
+          value: user.deviceName || "Unknown Device Name",
+          label: user.deviceName || "Unknown Device Name",
         }))),
   ];
 

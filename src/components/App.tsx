@@ -30,12 +30,12 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const foundUser = users.find((user) => user.username === username);
+    const foundUser = users.find((user) => user.deviceName === username);
     setCurrentUser(foundUser);
   }, [setCurrentUser, users, username]);
 
   useEffect(() => {
-    setClientUsers(users.filter((user) => user.clientType !== "server"));
+    setClientUsers(users.filter((user) => user.deviceName !== "Dashboard"));
   }, [users]);
 
   return (
@@ -50,7 +50,7 @@ export const App: React.FC = () => {
             />
             <span className="text-sm font-mono">
               {isConnected ? "Connected" : "Disconnected"}
-              {currentUser && ` - ${currentUser.username}`}
+              {currentUser && ` - ${currentUser.deviceName}`}
             </span>
           </div>
           <DeviceSelection
