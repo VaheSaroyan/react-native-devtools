@@ -43,6 +43,11 @@ socket.on("message", (data) => {
   console.log(`📨 Received: "${data}"`);
 });
 
+// Add handler for query-action events
+socket.on("query-action", (data) => {
+  console.log(`📨 Received query-action:`, data);
+});
+
 // Function to send a message
 function sendMessage(message) {
   socket.emit("message", message);

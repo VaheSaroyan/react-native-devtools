@@ -1,5 +1,7 @@
 import { Socket, Server as SocketIOServer } from "socket.io";
-import { DefaultEventsMap } from "socket.io/dist/typed-events";
+// Replace the problematic import with a direct type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DefaultEventsMap = Record<string, (...args: any[]) => void>;
 import { User } from "../types/User";
 import { SyncMessage } from "../components/external-dash/shared/types";
 import { QueryActionMessage } from "../components/external-dash/useSyncQueriesWeb";
@@ -104,7 +106,28 @@ export default function socketHandle({ io }: Props) {
     });
     // query changes from the dashboard to the devices
     socket.on("query-action", (message: QueryActionMessage) => {
-      console.log("query-action", message);
+      console.log("Serverquery-action--", message.action);
+      console.log("Target device", message.targetDevice);
+      console.log("All devices", users);
+      // Find the target device and send only to that device
+      const targetUser = users.find(
+        (user) => user.deviceName === message.targetDevice
+      );
+      if (targetUser) {
+        console.log("Sending to target device", targetUser.id);
+        // Send to the specific target device ID
+        io.to(targetUser.id).emit("query-action", message);
+      } else if (message.targetDevice === "All") {
+        console.log("Broadcasting to all devices");
+        // Broadcast to all non-dashboard clients
+        users
+          .filter((user) => user.deviceName !== "Dashboard")
+          .forEach((user) => {
+            io.to(user.id).emit("query-action", message);
+          });
+      } else {
+        console.log(`Target device ${message.targetDevice} not found`);
+      }
     });
   });
 }

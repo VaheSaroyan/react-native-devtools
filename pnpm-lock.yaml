@@ -75,6 +75,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.4
         version: 19.0.4(@types/react@19.0.12)
+      '@types/socket.io':
+        specifier: ^3.0.2
+        version: 3.0.2(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       '@typescript-eslint/eslint-plugin':
         specifier: ^5.0.0
         version: 5.62.0(@typescript-eslint/parser@5.62.0(eslint@8.57.1)(typescript@4.5.5))(eslint@8.57.1)(typescript@4.5.5)
@@ -807,6 +810,10 @@ packages:
 
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
+
+  '@types/socket.io@3.0.2':
+    resolution: {integrity: sha512-pu0sN9m5VjCxBZVK8hW37ZcMe8rjn4HHggBN5CbaRTvFwv5jOmuIRZEuddsBPa9Th0ts0SIo3Niukq+95cMBbQ==}
+    deprecated: This is a stub types definition. socket.io provides its own type definitions, so you do not need this installed.
 
   '@types/yauzl@2.10.3':
     resolution: {integrity: sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==}
@@ -4305,6 +4312,14 @@ snapshots:
       '@types/http-errors': 2.0.4
       '@types/node': 22.13.14
       '@types/send': 0.17.4
+
+  '@types/socket.io@3.0.2(bufferutil@4.0.9)(utf-8-validate@6.0.5)':
+    dependencies:
+      socket.io: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
 
   '@types/yauzl@2.10.3':
     dependencies:

@@ -76,7 +76,6 @@ export function useSyncQueriesWeb({
     const querySubscription = queryClient.getQueryCache().subscribe((event) => {
       switch (event.type) {
         case "updated":
-          console.log("query-action", event);
           switch (event.action.type as QueryActions) {
             case "ACTION-REFETCH":
             case "ACTION-INVALIDATE":
@@ -86,12 +85,15 @@ export function useSyncQueriesWeb({
             case "ACTION-REMOVE":
             case "ACTION-TRIGGER-LOADING":
             case "ACTION-RESTORE-LOADING":
+              console.log("Dashboard query-action", event.action.type);
+              console.log("Target device", selectedDeviceRef.current);
               socket.emit("query-action", {
-                queryHash: event.query.queryHash,
-                queryKey: event.query.queryKey,
                 action: event.action.type as QueryActions,
                 targetDevice: selectedDeviceRef.current,
-              } as QueryActionMessage);
+                queryHash: event.query.queryHash,
+                queryKey: event.query.queryKey,
+                data: event.query.state.data,
+              });
               break;
             case "success":
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
