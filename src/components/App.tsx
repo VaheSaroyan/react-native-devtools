@@ -16,8 +16,10 @@ export const App: React.FC = () => {
     },
     socketURL: CLIENT_URL,
   });
-  const [username, setUsername] = useState("Please select a user");
-  const [currentUser, setCurrentUser] = useState<User>();
+  const [targetDeviceName, setTargetDeviceName] = useState(
+    "Please select a user"
+  );
+  const [targetDevice, setTargetDevice] = useState<User>();
   const [clientUsers, setClientUsers] = useState<User[]>([]);
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
   const [filteredDevices, setFilteredDevices] = useState<User[]>([]);
@@ -25,10 +27,10 @@ export const App: React.FC = () => {
   useEffect(() => {
     // Find user in either currently connected or all devices
     const foundUser =
-      users.find((user) => user.deviceName === username) ||
-      allDevices?.find((user) => user.deviceName === username);
-    setCurrentUser(foundUser);
-  }, [setCurrentUser, users, allDevices, username]);
+      users.find((user) => user.deviceName === targetDeviceName) ||
+      allDevices?.find((user) => user.deviceName === targetDeviceName);
+    setTargetDevice(foundUser);
+  }, [setTargetDevice, users, allDevices, targetDeviceName]);
 
   useEffect(() => {
     // Filter out dashboard from connected users
@@ -56,7 +58,7 @@ export const App: React.FC = () => {
   return (
     <Providers
       setDevices={setClientUsers}
-      selectedDevice={username}
+      selectedDevice={targetDeviceName}
       socket={socket}
     >
       <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
@@ -69,7 +71,7 @@ export const App: React.FC = () => {
             />
             <span className="text-sm font-mono">
               {isConnected ? "Connected" : "Disconnected"}
-              {currentUser && ` - ${currentUser.deviceName}`}
+              {targetDevice && ` - Targeting: ${targetDevice.deviceName}`}
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -83,8 +85,8 @@ export const App: React.FC = () => {
               <span className="ml-2 text-sm">Show offline devices</span>
             </label>
             <DeviceSelection
-              selectedUser={username}
-              setSelectedUser={setUsername}
+              selectedUser={targetDeviceName}
+              setSelectedUser={setTargetDeviceName}
               users={clientUsers}
               allDevices={allDevices || []}
               showOfflineDevices={showOfflineDevices}
@@ -94,34 +96,53 @@ export const App: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto p-4">
           <div className="px-2 max-w-3xl mx-auto">
-            {/* Show count when multiple users are displayed */}
-            {username === "All" && filteredDevices.length > 0 && (
+            {/* Device count and stats */}
+            {filteredDevices.length > 0 && (
               <div className="text-gray-400 text-sm mb-4">
-                Showing {filteredDevices.length}{" "}
-                {showOfflineDevices ? "" : "connected"}{" "}
-                {filteredDevices.length === 1 ? "device" : "devices"}
-                {showOfflineDevices && (
-                  <span>
-                    {" "}
-                    ({filteredDevices.filter((d) => d.isConnected).length}{" "}
-                    online,{" "}
-                    {filteredDevices.filter((d) => !d.isConnected).length}{" "}
-                    offline)
-                  </span>
-                )}
+                <div className="flex items-center justify-between">
+                  <div>
+                    Showing {filteredDevices.length}{" "}
+                    {showOfflineDevices ? "" : "connected"}{" "}
+                    {filteredDevices.length === 1 ? "device" : "devices"}
+                    {showOfflineDevices && (
+                      <span>
+                        {" "}
+                        ({
+                          filteredDevices.filter((d) => d.isConnected).length
+                        }{" "}
+                        online,{" "}
+                        {filteredDevices.filter((d) => !d.isConnected).length}{" "}
+                        offline)
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    {targetDeviceName !== "All" && targetDevice && (
+                      <span className="text-blue-400 font-medium">
+                        Targeting: {targetDevice.deviceName}
+                      </span>
+                    )}
+                    {targetDeviceName === "All" && (
+                      <span className="text-blue-400 font-medium">
+                        Targeting: All Devices
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Show selected user info */}
-            {currentUser && username !== "All" && (
-              <UserInfo userData={currentUser} />
-            )}
-
-            {/* Show all users if "All" is selected */}
-            {username === "All" &&
-              filteredDevices.map((user) => (
-                <UserInfo key={user.id} userData={user} />
-              ))}
+            {/* Always show all devices */}
+            {filteredDevices.map((user) => (
+              <UserInfo
+                key={user.id}
+                userData={user}
+                isTargeted={
+                  targetDeviceName === "All" ||
+                  targetDeviceName === user.deviceName
+                }
+              />
+            ))}
           </div>
         </main>
       </div>

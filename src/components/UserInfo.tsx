@@ -3,9 +3,10 @@ import { User } from "../types/User";
 
 interface Props {
   userData: User;
+  isTargeted?: boolean;
 }
 
-export const UserInfo: React.FC<Props> = ({ userData }) => {
+export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Get platform with fallback to Unknown
@@ -23,6 +24,8 @@ export const UserInfo: React.FC<Props> = ({ userData }) => {
     <div
       className={`bg-gray-800 border ${
         isConnected ? "border-gray-700" : "border-red-900"
+      } ${
+        isTargeted ? "ring-2 ring-blue-400" : ""
       } rounded-lg p-4 mb-4 shadow-md w-full`}
     >
       <div
@@ -35,8 +38,13 @@ export const UserInfo: React.FC<Props> = ({ userData }) => {
               isConnected ? "bg-green-500" : "bg-red-500"
             }`}
           />
-          <h2 className="text-lg font-semibold text-gray-200 mr-3">
+          <h2
+            className={`text-lg font-semibold ${
+              isTargeted ? "text-blue-300" : "text-gray-200"
+            } mr-3`}
+          >
             {userData.deviceName}
+            {isTargeted && <span className="ml-2 text-xs">(Target)</span>}
           </h2>
           <span className="px-2 py-0.5 text-xs rounded-full bg-gray-700 text-gray-300">
             {platform}
@@ -102,6 +110,13 @@ export const UserInfo: React.FC<Props> = ({ userData }) => {
               ? "Persistent Connection"
               : "Standard Connection"}
           </div>
+
+          {isTargeted && (
+            <>
+              <div className="text-blue-400">Target Status:</div>
+              <div className="text-blue-300">Currently Targeted</div>
+            </>
+          )}
 
           <div className="col-span-2 border-t border-gray-700 mt-3 pt-3 text-xs text-gray-400">
             <p>Click the header to collapse this panel</p>

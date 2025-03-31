@@ -49,7 +49,7 @@ export const DeviceSelection: React.FC<Props> = ({
   const userOptions: UserOption[] = (() => {
     if (devicesToShow?.length === 0) {
       // No users available
-      return [{ value: "", label: "No users available", disabled: true }];
+      return [{ value: "", label: "No devices available", disabled: true }];
     } else if (devicesToShow?.length === 1) {
       // Only one user, no need for "All" option
       const device = devicesToShow[0];
@@ -63,7 +63,7 @@ export const DeviceSelection: React.FC<Props> = ({
     } else {
       // Multiple users, include "All" option
       return [
-        { value: "All", label: "All" },
+        { value: "All", label: "Target All Devices" },
         ...devicesToShow.map((device) => ({
           value: device.deviceName || "Unknown Device Name",
           label: device.deviceName || "Unknown Device Name",
@@ -77,14 +77,14 @@ export const DeviceSelection: React.FC<Props> = ({
   useEffect(() => {
     if (devicesToShow?.length === 0) {
       // No users available
-      setSelectedUser("No users available");
+      setSelectedUser("No devices available");
     } else if (devicesToShow?.length === 1) {
       // Exactly one user available, auto-select it
       const deviceName = devicesToShow[0].deviceName || "Unknown Device Name";
       setSelectedUser(deviceName);
     } else if (devicesToShow?.length > 1) {
       // Multiple users available
-      if (selectedUser === "No users available" || !selectedUser) {
+      if (selectedUser === "No devices available" || !selectedUser) {
         // If no valid selection, default to "All"
         setSelectedUser("All");
       } else {
@@ -107,7 +107,11 @@ export const DeviceSelection: React.FC<Props> = ({
                 shadow-sm focus:outline-none text-sm font-mono cursor-pointer flex justify-between items-center"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="truncate mr-2">{selectedUser}</span>
+        <span className="truncate mr-2">
+          {selectedUser === "All"
+            ? "Target: All Devices"
+            : `Target: ${selectedUser}`}
+        </span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -129,6 +133,9 @@ export const DeviceSelection: React.FC<Props> = ({
           className="absolute mt-1 w-full rounded-md bg-gray-800 border border-gray-700 shadow-lg z-50 max-h-60 overflow-auto"
           style={{ position: "absolute", top: "100%", left: 0 }}
         >
+          <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">
+            Select device to target
+          </div>
           {userOptions.map((option, index) => (
             <div
               key={index}
