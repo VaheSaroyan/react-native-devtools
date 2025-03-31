@@ -32,14 +32,22 @@ export interface QueryActionMessage {
   queryKey: QueryKey; // Key array used to identify the query
   data: unknown; // Data payload (if applicable)
   action: QueryActions; // Action to perform
-  targetDevice: string; // Device to target ('All' for all devices)
+  targetDevice: string; // Device to target ('All' || device name)
 }
 
 /**
  * Message structure for requesting initial state from devices
  */
 export interface QueryRequestInitialStateMessage {
-  targetDevice: string; // Device to request state from ('All' for all devices)
+  targetDevice: string; // Device to request state from ('All' || device name)
+}
+
+/**
+ * Message structure for online manager actions sent from dashboard to devices
+ */
+export interface OnlineManagerMessage {
+  action: "ACTION-ONLINE-MANAGER-ONLINE" | "ACTION-ONLINE-MANAGER-OFFLINE";
+  targetDevice: string; // Device to target ('All' || device name)
 }
 
 interface Props {
@@ -129,12 +137,16 @@ export function useSyncQueriesWeb({
               isOnline ? "ONLINE" : "OFFLINE"
             }) to: ${selectedDeviceRef.current}`
           );
-          socket.emit("online-manager", {
+          const onlineManagerMessage: OnlineManagerMessage = {
             action: isOnline
               ? "ACTION-ONLINE-MANAGER-ONLINE"
               : "ACTION-ONLINE-MANAGER-OFFLINE",
             targetDevice: selectedDeviceRef.current,
-          });
+          };
+          socket.emit("online-manager", onlineManagerMessage);
+          console.log(
+            `${LOG_PREFIX} Online status message sent to: ${selectedDeviceRef.current}`
+          );
         }
       }
     );

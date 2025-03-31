@@ -5,6 +5,7 @@ type DefaultEventsMap = Record<string, (...args: any[]) => void>;
 import { User } from "../types/User";
 import { SyncMessage } from "../components/external-dash/shared/types";
 import {
+  OnlineManagerMessage,
   QueryActionMessage,
   QueryRequestInitialStateMessage,
 } from "../components/external-dash/useSyncQueriesWeb";
@@ -19,6 +20,8 @@ interface Props {
  */
 let users = [] as User[]; // Connected users
 let dashboardClients = [] as string[]; // Dashboard client IDs
+// Map to track socketId to deviceId for reconnection handling
+const deviceIdMap = new Map<string, string>();
 
 /**
  * Server-side socket handler that manages:
@@ -37,8 +40,32 @@ export default function socketHandle({ io }: Props) {
     // Find user before removing for logging
     const user = users.find((user) => user.id === id);
 
-    // Remove user from the list
-    users = users.filter((user: User) => user.id !== id);
+    // Get the device ID from our map if it exists
+    const deviceId = deviceIdMap.get(id);
+
+    // Only remove from users array if there's no persistent device ID
+    // or if there are no other connections with the same device ID
+    if (
+      !deviceId ||
+      !users.some((u) => u.id !== id && u.deviceId === deviceId)
+    ) {
+      users = users.filter((user: User) => user.id !== id);
+
+      console.log(
+        `${LOG_PREFIX} Client disconnected - ID: ${id}, Name: ${
+          user?.deviceName || "Unknown"
+        } - Removing user record`
+      );
+    } else {
+      console.log(
+        `${LOG_PREFIX} Client disconnected - ID: ${id}, Name: ${
+          user?.deviceName || "Unknown"
+        } - Keeping user record for same device with ID: ${deviceId}`
+      );
+    }
+
+    // Remove from deviceIdMap
+    deviceIdMap.delete(id);
 
     // Remove from dashboard clients if it exists
     const wasDashboard = dashboardClients.includes(id);
@@ -62,7 +89,42 @@ export default function socketHandle({ io }: Props) {
   /**
    * Add a new user to the connected users list with unique naming
    */
-  function addNewUser({ id, deviceName }: User) {
+  function addNewUser({ id, deviceName, deviceId, platform }: User) {
+    // Check if we're reconnecting an existing device by deviceId
+    if (deviceId) {
+      // Store the mapping for future reference
+      deviceIdMap.set(id, deviceId);
+
+      // Check if we already have a user with this deviceId
+      const existingUserIndex = users.findIndex(
+        (user) => user.deviceId === deviceId
+      );
+
+      if (existingUserIndex !== -1) {
+        console.log(
+          `${LOG_PREFIX} Reconnecting existing device - ID: ${id}, Name: ${deviceName}, DeviceId: ${deviceId}, Platform: ${
+            platform || "Unknown"
+          }`
+        );
+
+        // Update the existing user with the new socket id and potentially new platform info
+        users[existingUserIndex].id = id;
+        if (platform) {
+          users[existingUserIndex].platform = platform;
+        }
+
+        // Notify all clients of updated user list
+        io.emit("users-update", users);
+        console.log(
+          `${LOG_PREFIX} Updated users list: ${users
+            .map((u) => u.deviceName)
+            .join(", ")}`
+        );
+
+        return;
+      }
+    }
+
     // Handle duplicate device names by adding incrementing numbers
     const extractNumber = (name: string) => {
       const match = name.match(/(\d+)$/);
@@ -89,9 +151,13 @@ export default function socketHandle({ io }: Props) {
       users.push({
         id: id,
         deviceName: deviceName,
+        deviceId: deviceId,
+        platform: platform,
       });
       console.log(
-        `${LOG_PREFIX} New user connected - ID: ${id}, Name: ${deviceName}`
+        `${LOG_PREFIX} New user connected - ID: ${id}, Name: ${deviceName}${
+          deviceId ? `, DeviceId: ${deviceId}` : ""
+        }${platform ? `, Platform: ${platform}` : ""}`
       );
 
       // Check if this is a dashboard client
@@ -138,16 +204,59 @@ export default function socketHandle({ io }: Props) {
     });
   }
 
+  /**
+   * Helper function to find target user(s) and execute an action on them
+   * @param targetDevice The target device name or "All"
+   * @param action Function to execute on each target user
+   * @param actionName Description of the action for logging
+   */
+  function withTargetUsers(
+    targetDevice: string,
+    action: (user: User) => void,
+    actionName: string
+  ) {
+    if (targetDevice === "All") {
+      console.log(`${LOG_PREFIX} Broadcasting ${actionName} to all devices`);
+      // Broadcast to all non-dashboard clients
+      const deviceUsers = users.filter(
+        (user) => user.deviceName !== "Dashboard"
+      );
+      console.log(
+        `${LOG_PREFIX} Sending to ${deviceUsers.length} devices: ${deviceUsers
+          .map((u) => u.deviceName)
+          .join(", ")}`
+      );
+
+      deviceUsers.forEach(action);
+    } else {
+      // Find the target device and send only to that device
+      const targetUser = users.find((user) => user.deviceName === targetDevice);
+
+      if (targetUser) {
+        console.log(
+          `${LOG_PREFIX} Sending to target device ${targetUser.deviceName} (${targetUser.id})`
+        );
+        action(targetUser);
+      } else {
+        console.log(`${LOG_PREFIX} Target device ${targetDevice} not found`);
+      }
+    }
+  }
+
   // Main socket connection handler
   io.on("connection", (socket: Socket) => {
     // Get the query parameters from the handshake
-    const { deviceName } = socket.handshake.query as {
+    const { deviceName, deviceId, platform } = socket.handshake.query as {
       deviceName: string | undefined;
+      deviceId: string | undefined;
+      platform: string | undefined;
     };
 
     console.log(
       `${LOG_PREFIX} New connection - ID: ${socket.id}, Name: ${
         deviceName || "Unknown Device"
+      }${deviceId ? `, DeviceId: ${deviceId}` : ""}${
+        platform ? `, Platform: ${platform}` : ""
       }`
     );
 
@@ -155,6 +264,8 @@ export default function socketHandle({ io }: Props) {
     addNewUser({
       id: socket.id,
       deviceName: deviceName || "Unknown Device Name",
+      deviceId: deviceId,
+      platform: platform,
     });
 
     // --- Event Handlers ---
@@ -206,37 +317,11 @@ export default function socketHandle({ io }: Props) {
         `${LOG_PREFIX} Query action from dashboard - Action: ${message.action}, Target: ${message.targetDevice}`
       );
 
-      // Find the target device and send only to that device
-      const targetUser = users.find(
-        (user) => user.deviceName === message.targetDevice
+      withTargetUsers(
+        message.targetDevice,
+        (user) => io.to(user.id).emit("query-action", message),
+        "query action"
       );
-
-      if (targetUser) {
-        console.log(
-          `${LOG_PREFIX} Sending to target device ${targetUser.deviceName} (${targetUser.id})`
-        );
-        // Send to the specific target device ID
-        io.to(targetUser.id).emit("query-action", message);
-      } else if (message.targetDevice === "All") {
-        console.log(`${LOG_PREFIX} Broadcasting query action to all devices`);
-        // Broadcast to all non-dashboard clients
-        const deviceUsers = users.filter(
-          (user) => user.deviceName !== "Dashboard"
-        );
-        console.log(
-          `${LOG_PREFIX} Sending to ${deviceUsers.length} devices: ${deviceUsers
-            .map((u) => u.deviceName)
-            .join(", ")}`
-        );
-
-        deviceUsers.forEach((user) => {
-          io.to(user.id).emit("query-action", message);
-        });
-      } else {
-        console.log(
-          `${LOG_PREFIX} Target device ${message.targetDevice} not found`
-        );
-      }
     });
 
     // Handle dashboard requesting initial state from devices
@@ -255,44 +340,28 @@ export default function socketHandle({ io }: Props) {
           return;
         }
 
-        // Find the target device and send request only to that device
-        const targetUser = users.find(
-          (user) => user.deviceName === message.targetDevice
+        withTargetUsers(
+          message.targetDevice,
+          (user) =>
+            io
+              .to(user.id)
+              .emit("request-initial-state", { type: "request-initial-state" }),
+          "initial state request"
         );
-
-        if (targetUser) {
-          console.log(
-            `${LOG_PREFIX} Requesting initial state from device: ${targetUser.deviceName} (${targetUser.id})`
-          );
-          // Send to the specific target device ID
-          io.to(targetUser.id).emit("request-initial-state", {
-            type: "request-initial-state",
-          });
-        } else if (message.targetDevice === "All") {
-          console.log(
-            `${LOG_PREFIX} Requesting initial state from all devices`
-          );
-          // Broadcast to all non-dashboard clients
-          const deviceUsers = users.filter(
-            (user) => user.deviceName !== "Dashboard"
-          );
-          console.log(
-            `${LOG_PREFIX} Sending to ${
-              deviceUsers.length
-            } devices: ${deviceUsers.map((u) => u.deviceName).join(", ")}`
-          );
-
-          deviceUsers.forEach((user) => {
-            io.to(user.id).emit("request-initial-state", {
-              type: "request-initial-state",
-            });
-          });
-        } else {
-          console.log(
-            `${LOG_PREFIX} Target device ${message.targetDevice} not found`
-          );
-        }
       }
     );
+
+    // Handle online manager messages from the dashboard to the devices
+    socket.on("online-manager", (message: OnlineManagerMessage) => {
+      console.log(
+        `${LOG_PREFIX} Online manager message from dashboard - Action: ${message.action}, Target: ${message.targetDevice}`
+      );
+
+      withTargetUsers(
+        message.targetDevice,
+        (user) => io.to(user.id).emit("online-manager", message),
+        "online manager message"
+      );
+    });
   });
 }
