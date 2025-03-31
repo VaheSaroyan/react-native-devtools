@@ -1,6 +1,6 @@
 {
   "name": "rn-better-dev-tools",
-  "productName": "React Native Better DevTools",
+  "productName": "React Native DevTools",
   "version": "1.0.0",
   "description": "Enhanced developer tools for React Native applications (Only supports React Query DevTools Right Now)",
   "main": ".vite/build/main.js",
