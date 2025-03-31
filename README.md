@@ -1,96 +1,118 @@
-# Simple Socket.IO Chat Application
+# React Native DevTools
 
-A basic Electron application with integrated Socket.IO server for real-time messaging.
+Enhanced developer tools for React Native applications (currently supporting React Query DevTools).
+
+![React Native DevTools](https://via.placeholder.com/800x450.png?text=React+Native+DevTools)
 
 ## Features
 
-- Electron desktop application with clean UI
-- Built-in Socket.IO server for real-time communication
-- React front-end with Tailwind CSS
-- Simple message broadcasting system
-- Centralized configuration for easy port changes
+- Connect to React Native applications over network
+- React Query DevTools integration
+- Real-time updates via Socket.IO
+- Cross-platform Electron application (macOS, Windows, Linux)
+- Clean, modern UI
 
 ## Installation
 
+### Download Pre-built Binaries
+
+Download the latest release from the [Releases page](https://github.com/your-username/rn-better-dev-tools/releases).
+
+### Build from Source
+
 ```bash
+# Clone the repository
+git clone https://github.com/your-username/rn-better-dev-tools.git
+cd rn-better-dev-tools
+
 # Install dependencies
 pnpm install
+
+# Start in development mode
+pnpm start
+
+# Package the application
+pnpm run make
 ```
 
-## Running the Application
+## Usage
+
+1. Launch the React Native DevTools application
+2. Connect your React Native application by:
+   - Add Socket.IO client to your React Native app
+   - Configure it to connect to the DevTools server
+   - See below for integration instructions
+
+## Integrating with Your React Native App
+
+Add the required dependencies to your React Native project:
 
 ```bash
-# Start the Electron app with Socket.IO server
-pnpm start
+npm install socket.io-client
+# or
+yarn add socket.io-client
 ```
 
-The application will:
+Then, in your React Native app:
 
-1. Start a Socket.IO server on the configured port (default: 42831)
-2. Launch the Electron application window
-3. Allow sending and receiving messages in real-time
+```javascript
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import io from "socket.io-client";
+
+// Create a query client
+const queryClient = new QueryClient();
+
+// Connect to DevTools
+const socket = io("http://YOUR_COMPUTER_IP:42831");
+
+// Add React Query DevTools integration
+if (__DEV__) {
+  // Initialize devtools connection
+  socket.on("connect", () => {
+    console.log("Connected to React Native DevTools");
+
+    // Send React Query client state
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      socket.emit("reactQueryState", {
+        type: "cache",
+        data: queryClient.getQueryCache().getAll(),
+      });
+    });
+  });
+}
+
+// In your app component
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* Your app content */}
+    </QueryClientProvider>
+  );
+}
+```
 
 ## Configuration
 
-The application uses a centralized configuration approach for easy modification:
+The application uses a centralized configuration:
 
-- **Main config**: `src/config.ts` - Used by the TypeScript application code
-- **Test client config**: `config.js` - CommonJS version for the test client
+- Server port: Defaults to 42831
+- Socket.IO settings: Configured for cross-origin support
 
-To change the server port, update it in both config files:
+To change the server port, update it in the configuration files:
 
-1. In `src/config.ts`:
-
-   ```typescript
-   export const SERVER_PORT = 9876; // Change to your desired port
-   ```
-
-2. In `config.js`:
-   ```javascript
-   const SERVER_PORT = 9876; // Change to match the value in src/config.ts
-   ```
-
-## Testing
-
-See [POSTMAN_TESTING.md](./POSTMAN_TESTING.md) for instructions on testing with Postman or the provided test client.
-
-Quick test with the Node.js client:
-
-```bash
-node socket-client.js
+```typescript
+// In src/config.ts
+export const SERVER_PORT = 9876; // Change to your desired port
 ```
 
-## Project Structure
+## Building and Publishing
 
-- `src/config.ts` - Centralized configuration (TypeScript)
-- `config.js` - Centralized configuration (CommonJS for test client)
-- `src/main.ts` - Electron main process and Socket.IO server startup
-- `src/server.ts` - Simple Socket.IO server implementation
-- `src/components/App.tsx` - React client UI
-- `socket-client.js` - Test client for Socket.IO server
+See [RELEASE.md](./RELEASE.md) for detailed instructions on building and publishing.
 
-## Socket.IO Implementation
+## Contributing
 
-The Socket.IO server is implemented with a simple approach and centralized configuration:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```javascript
-// Import config
-import { SERVER_PORT, SOCKET_CONFIG } from "./config";
+## License
 
-// Create server
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, SOCKET_CONFIG);
-
-// Handle connections
-io.on("connection", (socket) => {
-  // Listen for messages
-  socket.on("message", (data) => {
-    // Broadcast to all clients
-    io.emit("message", data);
-  });
-});
-
-// Start server using port from config
-server.listen(SERVER_PORT);
-```
+This project is licensed under the MIT License - see the LICENSE file for details.
