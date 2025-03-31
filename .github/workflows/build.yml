@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release macOS App
 
 on:
   push:
@@ -7,11 +7,7 @@ on:
 
 jobs:
   release:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: macos-latest
 
     steps:
       - name: Check out Git repository
@@ -36,18 +32,13 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}
-          path: out/make/**/*
+          name: macos-app
+          path: out/make/**/*.zip
 
-      - name: Create Release
-        if: matrix.os == 'macos-latest'
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             out/make/**/*.zip
-            out/make/**/*.dmg
-            out/make/**/*.exe
-            out/make/**/*.deb
-            out/make/**/*.rpm
           draft: true
           generate_release_notes: true
