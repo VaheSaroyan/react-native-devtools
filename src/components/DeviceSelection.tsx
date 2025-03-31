@@ -103,29 +103,37 @@ export const DeviceSelection: React.FC<Props> = ({
   return (
     <div className="relative w-64" ref={dropdownRef}>
       <div
-        className="w-full p-2 bg-gray-800 text-gray-200 border border-gray-700 rounded-md 
-                shadow-sm focus:outline-none text-sm font-mono cursor-pointer flex justify-between items-center"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full p-2 bg-gray-800 text-gray-200 border border-gray-700 rounded-md 
+                shadow-sm focus:outline-none text-sm font-mono flex justify-between items-center ${
+                  devicesToShow?.length > 0
+                    ? "cursor-pointer"
+                    : "cursor-not-allowed opacity-80"
+                }`}
+        onClick={() => devicesToShow?.length > 0 && setIsOpen(!isOpen)}
       >
         <span className="truncate mr-2">
-          {selectedUser === "All"
+          {selectedUser === "No devices available"
+            ? "No devices available"
+            : selectedUser === "All"
             ? "Target: All Devices"
             : `Target: ${selectedUser}`}
         </span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          className="w-3 h-3 text-gray-400 flex-shrink-0"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        {devicesToShow?.length > 0 && (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            className="w-3 h-3 text-gray-400 flex-shrink-0"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        )}
       </div>
 
       {isOpen && (

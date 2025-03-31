@@ -64,15 +64,24 @@ export const App: React.FC = () => {
       <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
         <header className="w-full px-4 py-3 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div
-              className={`w-3 h-3 rounded-full ${
-                isConnected ? "bg-green-400" : "bg-red-400"
-              }`}
-            />
-            <span className="text-sm font-mono">
-              {isConnected ? "Connected" : "Disconnected"}
-              {targetDevice && ` - Targeting: ${targetDevice.deviceName}`}
-            </span>
+            {filteredDevices.length > 0 && (
+              <>
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    isConnected ? "bg-green-400" : "bg-red-400"
+                  }`}
+                />
+                <span className="text-sm font-mono">
+                  {isConnected ? "Connected" : "Disconnected"}
+                  {targetDevice && ` - Targeting: ${targetDevice.deviceName}`}
+                </span>
+              </>
+            )}
+            {filteredDevices.length === 0 && (
+              <span className="text-sm font-mono text-gray-400">
+                No devices available
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <label className="flex items-center cursor-pointer">
