@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Platform } from "react-native";
 import { io as socketIO, Socket } from "socket.io-client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { User } from "./User";
+import {
+  getStorage,
+  getPlatform,
+  getPlatformSpecificURL,
+} from "./platformUtils";
 
 interface Props {
   deviceName: string; // Unique name to identify the device
@@ -39,8 +42,11 @@ const getOrCreateDeviceId = async (): Promise<string> => {
       return deviceId;
     }
 
-    // Try to get from AsyncStorage
-    const storedId = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
+    // Get the storage implementation
+    const storage = getStorage();
+
+    // Try to get from storage
+    const storedId = await storage.getItem(DEVICE_ID_STORAGE_KEY);
 
     if (storedId) {
       deviceId = storedId;
@@ -49,43 +55,17 @@ const getOrCreateDeviceId = async (): Promise<string> => {
 
     // Generate and store a new ID if not found
     const newId = generateDeviceId();
-    await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, newId);
+    await storage.setItem(DEVICE_ID_STORAGE_KEY, newId);
     deviceId = newId;
     return newId;
   } catch (error) {
     console.error("Failed to get/create device ID:", error);
-    // Fallback to a temporary ID if AsyncStorage fails
+    // Fallback to a temporary ID if storage fails
     const tempId = generateDeviceId();
     deviceId = tempId;
     return tempId;
   }
 };
-
-/**
- * Determines the correct socket URL based on the current platform
- * According to Socket.IO docs: https://socket.io/how-to/use-with-react-native
- *
- * @param baseUrl The base URL provided (may contain port)
- * @returns The platform-specific URL
- */
-function getPlatformSpecificURL(baseUrl: string): string {
-  // Extract protocol, hostname and any additional parts (like port)
-  const url = new URL(baseUrl);
-
-  // For iOS simulator, use localhost
-  if (Platform.OS === "ios") {
-    return baseUrl; // localhost works fine for iOS simulator
-  }
-
-  // For Android emulator, replace hostname with 10.0.2.2
-  if (Platform.OS === "android") {
-    url.hostname = "10.0.2.2";
-    return url.toString();
-  }
-
-  // For web or real device, use as provided
-  return baseUrl;
-}
 
 /**
  * Hook that handles socket connection for device-dashboard communication
@@ -111,8 +91,7 @@ export function useMySocket({ deviceName, socketURL }: Props) {
   const logPrefix = `[${deviceName}]`;
 
   // Get the current platform
-  const currentPlatform =
-    Platform.OS.charAt(0).toUpperCase() + Platform.OS.slice(1); // Capitalize first letter
+  const { name: currentPlatform } = getPlatform();
 
   // Define event handlers at function root level to satisfy linter
   const onConnect = () => {
