@@ -5,18 +5,23 @@ interface Props {
   selectedUser: string;
   setSelectedUser: (user: string) => void;
   users: User[];
+  allDevices?: User[];
+  showOfflineDevices?: boolean;
 }
 
 interface UserOption {
   value: string;
   label: string;
   disabled?: boolean;
+  isOffline?: boolean;
 }
 
 export const DeviceSelection: React.FC<Props> = ({
   selectedUser,
   setSelectedUser,
   users,
+  allDevices = [],
+  showOfflineDevices = false,
 }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -37,41 +42,47 @@ export const DeviceSelection: React.FC<Props> = ({
     };
   }, []);
 
+  // Get the display devices based on settings
+  const devicesToShow = showOfflineDevices ? allDevices : users;
+
   // Generate user options based on available users
   const userOptions: UserOption[] = (() => {
-    if (users?.length === 0) {
+    if (devicesToShow?.length === 0) {
       // No users available
       return [{ value: "", label: "No users available", disabled: true }];
-    } else if (users?.length === 1) {
+    } else if (devicesToShow?.length === 1) {
       // Only one user, no need for "All" option
+      const device = devicesToShow[0];
       return [
         {
-          value: users[0].deviceName || "Unknown Device Name",
-          label: users[0].deviceName || "Unknown Device Name",
+          value: device.deviceName || "Unknown Device Name",
+          label: device.deviceName || "Unknown Device Name",
+          isOffline: showOfflineDevices && !device.isConnected,
         },
       ];
     } else {
       // Multiple users, include "All" option
       return [
         { value: "All", label: "All" },
-        ...users.map((user) => ({
-          value: user.deviceName || "Unknown Device Name",
-          label: user.deviceName || "Unknown Device Name",
+        ...devicesToShow.map((device) => ({
+          value: device.deviceName || "Unknown Device Name",
+          label: device.deviceName || "Unknown Device Name",
+          isOffline: showOfflineDevices && !device.isConnected,
         })),
       ];
     }
   })();
 
-  // Update selectedUser based on the number of available users
+  // Update selectedUser based on the number of available devices
   useEffect(() => {
-    if (users?.length === 0) {
+    if (devicesToShow?.length === 0) {
       // No users available
       setSelectedUser("No users available");
-    } else if (users?.length === 1) {
+    } else if (devicesToShow?.length === 1) {
       // Exactly one user available, auto-select it
-      const deviceName = users[0].deviceName || "Unknown Device Name";
+      const deviceName = devicesToShow[0].deviceName || "Unknown Device Name";
       setSelectedUser(deviceName);
-    } else if (users?.length > 1) {
+    } else if (devicesToShow?.length > 1) {
       // Multiple users available
       if (selectedUser === "No users available" || !selectedUser) {
         // If no valid selection, default to "All"
@@ -80,14 +91,14 @@ export const DeviceSelection: React.FC<Props> = ({
         // Check if the current selection is still valid
         const isValidSelection =
           selectedUser === "All" ||
-          users.some((user) => user.deviceName === selectedUser);
+          devicesToShow.some((device) => device.deviceName === selectedUser);
 
         if (!isValidSelection) {
           setSelectedUser("All");
         }
       }
     }
-  }, [users, selectedUser, setSelectedUser]);
+  }, [devicesToShow, selectedUser, setSelectedUser]);
 
   return (
     <div className="relative w-64" ref={dropdownRef}>
@@ -123,7 +134,9 @@ export const DeviceSelection: React.FC<Props> = ({
               key={index}
               className={`px-4 py-2 text-sm font-mono hover:bg-gray-700 cursor-pointer ${
                 option.disabled ? "opacity-50 cursor-not-allowed" : ""
-              } ${selectedUser === option.value ? "bg-gray-700" : ""}`}
+              } ${selectedUser === option.value ? "bg-gray-700" : ""} ${
+                option.isOffline ? "text-gray-400" : ""
+              }`}
               onClick={() => {
                 if (!option.disabled) {
                   setSelectedUser(option.value);
@@ -131,7 +144,15 @@ export const DeviceSelection: React.FC<Props> = ({
                 }
               }}
             >
-              {option.label}
+              <div className="flex items-center">
+                {option.isOffline && (
+                  <span className="mr-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+                {!option.isOffline && option.value !== "All" && (
+                  <span className="mr-2 w-2 h-2 bg-green-500 rounded-full"></span>
+                )}
+                {option.label}
+              </div>
             </div>
           ))}
         </div>

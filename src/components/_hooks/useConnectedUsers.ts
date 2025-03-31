@@ -10,6 +10,7 @@ let socket = null as Socket | null; // Module-level variable to store the socket
 export default function useConnectedUsers({ query, socketURL }: Props) {
   const [isConnected, setIsConnected] = useState(!!socket?.connected);
   const [users, setUsers] = useState<User[]>([]);
+  const [allDevices, setAllDevices] = useState<User[]>([]);
 
   if (!socket) {
     // Initialize the socket only if it hasn't been already initialized
@@ -37,16 +38,23 @@ export default function useConnectedUsers({ query, socketURL }: Props) {
     socket.on("users-update", (newUsers: User[]) => {
       setUsers(newUsers);
     });
+
+    // Listen for all devices updates (including offline devices)
+    socket.on("all-devices-update", (devices: User[]) => {
+      setAllDevices(devices);
+    });
+
     socket?.on("connect", onConnect);
     socket?.on("disconnect", onDisconnect);
 
     return () => {
       socket.off("users-update");
+      socket.off("all-devices-update");
       socket.off("connect");
       socket.off("disconnect");
       onDisconnect();
       disconnect();
     };
   }, []);
-  return { socket, connect, disconnect, isConnected, users };
+  return { socket, connect, disconnect, isConnected, users, allDevices };
 }

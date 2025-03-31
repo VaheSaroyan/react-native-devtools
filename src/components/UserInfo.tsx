@@ -11,13 +11,30 @@ export const UserInfo: React.FC<Props> = ({ userData }) => {
   // Get platform with fallback to Unknown
   const platform = userData.platform || "Unknown";
 
+  // Get connection status
+  const isConnected =
+    userData.isConnected !== undefined ? userData.isConnected : true;
+  const connectionStatusText = isConnected ? "Connected" : "Disconnected";
+  const connectionStatusClass = isConnected
+    ? "bg-green-900 text-green-300"
+    : "bg-red-900 text-red-300";
+
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-4 shadow-md w-full">
+    <div
+      className={`bg-gray-800 border ${
+        isConnected ? "border-gray-700" : "border-red-900"
+      } rounded-lg p-4 mb-4 shadow-md w-full`}
+    >
       <div
         className="flex justify-between items-center border-b border-gray-700 pb-2 mb-3 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center">
+          <div
+            className={`w-2 h-2 rounded-full mr-2 ${
+              isConnected ? "bg-green-500" : "bg-red-500"
+            }`}
+          />
           <h2 className="text-lg font-semibold text-gray-200 mr-3">
             {userData.deviceName}
           </h2>
@@ -30,11 +47,11 @@ export const UserInfo: React.FC<Props> = ({ userData }) => {
           <span
             className={`px-2 py-1 text-xs rounded-full ${
               userData.deviceId
-                ? "bg-green-900 text-green-300"
+                ? connectionStatusClass
                 : "bg-yellow-900 text-yellow-300"
             }`}
           >
-            {userData.deviceId ? "Connected" : "Legacy Connection"}
+            {userData.deviceId ? connectionStatusText : "Legacy Connection"}
           </span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -73,6 +90,11 @@ export const UserInfo: React.FC<Props> = ({ userData }) => {
 
           <div className="text-gray-400 mt-2">Platform:</div>
           <div className="text-gray-200 mt-2">{platform}</div>
+
+          <div className="text-gray-400">Connection Status:</div>
+          <div className={isConnected ? "text-green-400" : "text-red-400"}>
+            {connectionStatusText}
+          </div>
 
           <div className="text-gray-400">Connection Type:</div>
           <div className="text-gray-200">

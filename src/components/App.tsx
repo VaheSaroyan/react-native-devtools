@@ -10,7 +10,7 @@ import { UserInfo } from "./UserInfo";
 import Providers from "./external-dash/providers";
 
 export const App: React.FC = () => {
-  const { users, isConnected, socket } = useConnectedUsers({
+  const { users, allDevices, isConnected, socket } = useConnectedUsers({
     query: {
       deviceName: "Dashboard",
     },
@@ -19,15 +19,39 @@ export const App: React.FC = () => {
   const [username, setUsername] = useState("Please select a user");
   const [currentUser, setCurrentUser] = useState<User>();
   const [clientUsers, setClientUsers] = useState<User[]>([]);
+  const [showOfflineDevices, setShowOfflineDevices] = useState(true);
+  const [filteredDevices, setFilteredDevices] = useState<User[]>([]);
 
   useEffect(() => {
-    const foundUser = users.find((user) => user.deviceName === username);
+    // Find user in either currently connected or all devices
+    const foundUser =
+      users.find((user) => user.deviceName === username) ||
+      allDevices?.find((user) => user.deviceName === username);
     setCurrentUser(foundUser);
-  }, [setCurrentUser, users, username]);
+  }, [setCurrentUser, users, allDevices, username]);
 
   useEffect(() => {
+    // Filter out dashboard from connected users
     setClientUsers(users.filter((user) => user.deviceName !== "Dashboard"));
   }, [users]);
+
+  useEffect(() => {
+    // Filter devices based on showOfflineDevices setting
+    if (!allDevices) {
+      setFilteredDevices(clientUsers);
+      return;
+    }
+
+    if (showOfflineDevices) {
+      // Show both online and offline devices
+      setFilteredDevices(
+        allDevices.filter((device) => device.deviceName !== "Dashboard")
+      );
+    } else {
+      // Show only online devices
+      setFilteredDevices(clientUsers);
+    }
+  }, [allDevices, clientUsers, showOfflineDevices]);
 
   return (
     <Providers
@@ -48,20 +72,43 @@ export const App: React.FC = () => {
               {currentUser && ` - ${currentUser.deviceName}`}
             </span>
           </div>
-          <DeviceSelection
-            selectedUser={username}
-            setSelectedUser={setUsername}
-            users={clientUsers}
-          />
+          <div className="flex items-center gap-4">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOfflineDevices}
+                onChange={() => setShowOfflineDevices(!showOfflineDevices)}
+                className="form-checkbox h-4 w-4 text-blue-500 rounded"
+              />
+              <span className="ml-2 text-sm">Show offline devices</span>
+            </label>
+            <DeviceSelection
+              selectedUser={username}
+              setSelectedUser={setUsername}
+              users={clientUsers}
+              allDevices={allDevices || []}
+              showOfflineDevices={showOfflineDevices}
+            />
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4">
           <div className="px-2 max-w-3xl mx-auto">
             {/* Show count when multiple users are displayed */}
-            {username === "All" && clientUsers.length > 0 && (
+            {username === "All" && filteredDevices.length > 0 && (
               <div className="text-gray-400 text-sm mb-4">
-                Showing {clientUsers.length} connected{" "}
-                {clientUsers.length === 1 ? "device" : "devices"}
+                Showing {filteredDevices.length}{" "}
+                {showOfflineDevices ? "" : "connected"}{" "}
+                {filteredDevices.length === 1 ? "device" : "devices"}
+                {showOfflineDevices && (
+                  <span>
+                    {" "}
+                    ({filteredDevices.filter((d) => d.isConnected).length}{" "}
+                    online,{" "}
+                    {filteredDevices.filter((d) => !d.isConnected).length}{" "}
+                    offline)
+                  </span>
+                )}
               </div>
             )}
 
@@ -72,7 +119,7 @@ export const App: React.FC = () => {
 
             {/* Show all users if "All" is selected */}
             {username === "All" &&
-              clientUsers.map((user) => (
+              filteredDevices.map((user) => (
                 <UserInfo key={user.id} userData={user} />
               ))}
           </div>

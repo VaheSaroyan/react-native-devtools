@@ -19,9 +19,12 @@ interface Props {
  * Global state for connected users and dashboard clients
  */
 let users = [] as User[]; // Connected users
+const allDevices = [] as User[]; // All devices that have ever connected (history)
 let dashboardClients = [] as string[]; // Dashboard client IDs
 // Map to track socketId to deviceId for reconnection handling
 const deviceIdMap = new Map<string, string>();
+// Map to track active socket connections by deviceId
+const activeConnectionsMap = new Map<string, string>();
 
 /**
  * Server-side socket handler that manages:
@@ -56,6 +59,18 @@ export default function socketHandle({ io }: Props) {
           user?.deviceName || "Unknown"
         } - Removing user record`
       );
+
+      // Update the connection status in allDevices array
+      if (deviceId) {
+        const deviceIndex = allDevices.findIndex(
+          (u) => u.deviceId === deviceId
+        );
+        if (deviceIndex !== -1) {
+          allDevices[deviceIndex].isConnected = false;
+          // Remove the active connection mapping
+          activeConnectionsMap.delete(deviceId);
+        }
+      }
     } else {
       console.log(
         `${LOG_PREFIX} Client disconnected - ID: ${id}, Name: ${
@@ -79,6 +94,11 @@ export default function socketHandle({ io }: Props) {
 
     // Sends new list of users to everyone connected
     io.emit("users-update", users);
+    // Also send the complete device history list
+    io.emit(
+      "all-devices-update",
+      allDevices.filter((device) => device.deviceName !== "Dashboard")
+    );
     console.log(
       `${LOG_PREFIX} Updated users list: ${users
         .map((u) => u.deviceName)
@@ -94,10 +114,17 @@ export default function socketHandle({ io }: Props) {
     if (deviceId) {
       // Store the mapping for future reference
       deviceIdMap.set(id, deviceId);
+      // Track active connection
+      activeConnectionsMap.set(deviceId, id);
 
       // Check if we already have a user with this deviceId
       const existingUserIndex = users.findIndex(
         (user) => user.deviceId === deviceId
+      );
+
+      // Check if this device is in our history
+      const existingDeviceIndex = allDevices.findIndex(
+        (device) => device.deviceId === deviceId
       );
 
       if (existingUserIndex !== -1) {
@@ -113,8 +140,33 @@ export default function socketHandle({ io }: Props) {
           users[existingUserIndex].platform = platform;
         }
 
+        // Add isConnected status
+        users[existingUserIndex].isConnected = true;
+
+        // Update in history list too if it exists
+        if (existingDeviceIndex !== -1) {
+          allDevices[existingDeviceIndex].id = id;
+          allDevices[existingDeviceIndex].isConnected = true;
+          if (platform) {
+            allDevices[existingDeviceIndex].platform = platform;
+          }
+        } else if (deviceName !== "Dashboard") {
+          // Add to history if not yet present and not a dashboard
+          allDevices.push({
+            id,
+            deviceName,
+            deviceId,
+            platform,
+            isConnected: true,
+          });
+        }
+
         // Notify all clients of updated user list
         io.emit("users-update", users);
+        io.emit(
+          "all-devices-update",
+          allDevices.filter((device) => device.deviceName !== "Dashboard")
+        );
         console.log(
           `${LOG_PREFIX} Updated users list: ${users
             .map((u) => u.deviceName)
@@ -148,12 +200,33 @@ export default function socketHandle({ io }: Props) {
 
     // Add user to the list if ID is valid
     if (id) {
-      users.push({
+      // Create user object with connection status
+      const newUser = {
         id: id,
         deviceName: deviceName,
         deviceId: deviceId,
         platform: platform,
-      });
+        isConnected: true,
+      };
+
+      users.push(newUser);
+
+      // Add to history if it's not a dashboard
+      if (deviceName !== "Dashboard" && deviceId) {
+        // Check if already in history
+        const existingDeviceIndex = allDevices.findIndex(
+          (device) => device.deviceId === deviceId
+        );
+
+        if (existingDeviceIndex !== -1) {
+          // Update existing record
+          allDevices[existingDeviceIndex] = { ...newUser };
+        } else {
+          // Add new device to history
+          allDevices.push({ ...newUser });
+        }
+      }
+
       console.log(
         `${LOG_PREFIX} New user connected - ID: ${id}, Name: ${deviceName}${
           deviceId ? `, DeviceId: ${deviceId}` : ""
@@ -168,12 +241,22 @@ export default function socketHandle({ io }: Props) {
 
       // Notify all clients of updated user list
       io.emit("users-update", users);
+      io.emit(
+        "all-devices-update",
+        allDevices.filter((device) => device.deviceName !== "Dashboard")
+      );
       console.log(
         `${LOG_PREFIX} Updated users list: ${users
           .map((u) => u.deviceName)
           .join(", ")}`
       );
     }
+  }
+
+  // Helper to check if a device is currently connected
+  function isDeviceConnected(deviceId: string | undefined): boolean {
+    if (!deviceId) return false;
+    return activeConnectionsMap.has(deviceId);
   }
 
   /**
