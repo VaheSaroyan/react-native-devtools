@@ -40,11 +40,3 @@ jobs:
         with:
           name: macos-app
           path: out/make/**/*.zip
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            out/make/**/*.zip
-          draft: true
-          generate_release_notes: true
