@@ -5,6 +5,7 @@
   "description": "Enhanced developer tools for React Native applications (Only supports React Query DevTools Right Now)",
   "main": ".vite/build/main.js",
   "scripts": {
+    "nuke": "rm -rf node_modules .vite/build pnpm-lock.yaml && pnpm store prune && pnpm cache clear --force && pnpm install --force",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
@@ -53,6 +54,7 @@
   },
   "dependencies": {
     "@tanstack/query-devtools": "file:tanstack-query-devtools-5.67.2.tgz",
+    "@tanstack/react-query": "^5.66.9",
     "@tanstack/react-query-devtools": "file:tanstack-react-query-devtools-5.69.0.tgz",
     "bufferutil": "^4.0.9",
     "electron-squirrel-startup": "^1.0.1",

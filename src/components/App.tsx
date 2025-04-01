@@ -3,7 +3,7 @@ import { CLIENT_URL } from "../config";
 import useConnectedUsers from "./_hooks/useConnectedUsers";
 import { User } from "../types/User";
 import "../index.css";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";

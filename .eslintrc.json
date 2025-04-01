@@ -12,5 +12,21 @@
     "plugin:import/electron",
     "plugin:import/typescript"
   ],
-  "parser": "@typescript-eslint/parser"
+  "parser": "@typescript-eslint/parser",
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    },
+    "import/ignore": ["@tanstack/react-query-devtools"]
+  },
+  "rules": {
+    "import/no-unresolved": [
+      "error",
+      {
+        "ignore": ["^@tanstack/react-query-devtools"]
+      }
+    ]
+  }
 }
