@@ -5,6 +5,7 @@
   "description": "Enhanced developer tools for React Native applications (Only supports React Query DevTools Right Now)",
   "main": ".vite/build/main.js",
   "scripts": {
+    "release": "./build-and-pack.sh",
     "nuke": "rm -rf node_modules .vite/build pnpm-lock.yaml && pnpm store prune && pnpm cache clear --force && pnpm install --force",
     "start": "electron-forge start",
     "package": "electron-forge package",
