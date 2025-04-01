@@ -2,31 +2,53 @@
 
 This guide explains how to release updates to GitHub and enable auto-updating for React Native DevTools.
 
-## Release Process
+## Automated Release Process
 
-### Manual Releases
+The recommended way to create a new release is to use the automated script:
 
-To manually publish a release to GitHub:
+1. Make sure your changes are committed to the main branch
+2. Run the release script:
+   ```bash
+   pnpm run release
+   # or directly with
+   ./release-version.sh
+   ```
+3. Follow the interactive prompts to:
+   - Select the version bump type (patch, minor, major, or custom)
+   - Enter release notes
+   - Confirm the release
+4. The script will:
+   - Update the version in package.json
+   - Commit and push the changes
+   - Create and push a git tag
+   - Monitor the GitHub Actions workflow
+   - Automatically publish the release when complete
+
+## Manual Releases
+
+If you need to manually publish a release:
 
 1. Ensure you have a GitHub access token with "repo" permissions
 2. Set the token as an environment variable:
    ```bash
    export GITHUB_TOKEN=your_github_token
    ```
-3. Run the release script:
+3. Run the pack script:
    ```bash
+   pnpm run pack
+   # or directly with
    ./build-and-pack.sh
    ```
 
-### Automated Releases via GitHub Actions
+## GitHub Actions Automated Releases
 
 For automated releases using GitHub Actions:
 
 1. Create a new tag following semantic versioning:
 
    ```bash
-   git tag v1.0.1
-   git push origin v1.0.1
+   git tag v1.x.x
+   git push origin v1.x.x
    ```
 
 2. The GitHub Actions workflow will automatically build and release the app
@@ -63,7 +85,7 @@ The auto-update system is configured in several files:
 
 ## Version Updates
 
-To update the version for a new release:
+The automated release script handles version updates for you, but if you need to do it manually:
 
 1. Update the version in `package.json`
 2. Commit the changes

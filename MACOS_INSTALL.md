@@ -11,8 +11,8 @@ This guide will walk you through the process of installing and running React Nat
 
 1. **Download the latest release**:
 
-   - Go to the [Releases page](https://github.com/your-username/rn-better-dev-tools/releases)
-   - Download the `.zip` file (e.g., `React Native DevTools-darwin-arm64-1.0.0.zip` for Apple Silicon Macs)
+   - Go to the [Releases page](https://github.com/lovesworking/rn-better-dev-tools/releases)
+   - Download the `.zip` file (e.g., `React Native DevTools-darwin-arm64-1.0.16.zip` for Apple Silicon Macs)
 
 2. **Extract the ZIP file**:
 
@@ -30,6 +30,15 @@ This guide will walk you through the process of installing and running React Nat
    - Select "Open" from the context menu
    - Click "Open" in the dialog box that appears
    - After this initial step, you can open the app normally
+
+## Automatic Updates
+
+React Native DevTools includes an auto-update feature:
+
+- The app will automatically check for updates when running
+- When a new version is available, it will be downloaded in the background
+- The update will be installed the next time you restart the app
+- No manual re-installation is required
 
 ## Troubleshooting
 
@@ -51,6 +60,14 @@ If you see a message saying the app is damaged:
 3. Click "Open Anyway"
 4. Follow the prompts to open the app
 
+### Auto-Update Issues
+
+If the app isn't automatically updating:
+
+1. Check your internet connection
+2. Ensure the app has permissions to access the internet in your firewall settings
+3. Manually download the latest version from the Releases page
+
 ## Uninstalling
 
 To uninstall React Native DevTools:
@@ -70,5 +87,5 @@ After installing and launching React Native DevTools:
 
 If you encounter any issues, please:
 
-1. Check the [GitHub Issues](https://github.com/your-username/rn-better-dev-tools/issues) for known problems
+1. Check the [GitHub Issues](https://github.com/lovesworking/rn-better-dev-tools/issues) for known problems
 2. Create a new issue with details about your problem if it hasn't been reported yet
