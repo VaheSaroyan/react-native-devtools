@@ -4,6 +4,7 @@ import started from "electron-squirrel-startup";
 import { startServer } from "./server";
 import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
+import { setupAutoUpdater } from "./auto-updater";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -43,6 +44,9 @@ app.on("ready", () => {
   // Start the Socket.IO server
   socketServer = startServer();
   console.log("Simple Socket.IO server started");
+
+  // Setup auto-updater
+  setupAutoUpdater();
 
   // Create the application window
   createWindow();

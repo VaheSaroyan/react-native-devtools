@@ -6,6 +6,7 @@ import { MakerRpm } from "@electron-forge/maker-rpm";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import { PublisherGithub } from "@electron-forge/publisher-github";
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -23,6 +24,15 @@ const config: ForgeConfig = {
     // new MakerSquirrel({}),
     // new MakerRpm({}),
     // new MakerDeb({})
+  ],
+  publishers: [
+    new PublisherGithub({
+      repository: {
+        owner: "lovesworking", // Replace with your GitHub username or organization
+        name: "rn-better-dev-tools", // Replace with your repository name
+      },
+      prerelease: false, // Set to true if you want to mark releases as pre-releases
+    }),
   ],
   plugins: [
     new VitePlugin({
