@@ -3,7 +3,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSyncQueriesWeb } from "./useSyncQueriesWeb";
-import { User } from "../../types/User";
 import { Socket } from "socket.io-client";
 interface Props {
   children: React.ReactNode;

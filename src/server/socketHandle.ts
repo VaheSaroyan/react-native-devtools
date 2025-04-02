@@ -2,7 +2,7 @@ import { Socket, Server as SocketIOServer } from "socket.io";
 // Replace the problematic import with a direct type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DefaultEventsMap = Record<string, (...args: any[]) => void>;
-import { User } from "../types/User";
+import { User } from "../components/external-dash/types/User";
 import { SyncMessage } from "../components/external-dash/shared/types";
 import {
   OnlineManagerMessage,

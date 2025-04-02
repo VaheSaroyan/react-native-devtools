@@ -1,7 +1,7 @@
 import io, { Socket } from "socket.io-client";
 import { useEffect, useState } from "react";
-import { User } from "../../types/User";
-import { ClientQuery } from "../../types/ClientQuery";
+import { User } from "../types/User";
+import { ClientQuery } from "../types/ClientQuery";
 interface Props {
   query: ClientQuery;
   socketURL: string;
