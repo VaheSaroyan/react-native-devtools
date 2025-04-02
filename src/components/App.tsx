@@ -11,7 +11,7 @@ import Providers from "./external-dash/providers";
 
 export const App: React.FC = () => {
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
-  const { allDevices, isConnected, socket } = useConnectedUsers({
+  const { allDevices, isDashboardConnected, socket } = useConnectedUsers({
     query: {
       deviceName: "Dashboard",
     },
@@ -33,7 +33,7 @@ export const App: React.FC = () => {
   }, [setTargetDevice, allDevices, targetDeviceName]);
 
   return (
-    <Providers selectedDevice={targetDeviceName} socket={socket}>
+    <Providers targetDeviceName={targetDeviceName} socket={socket}>
       <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
         <header className="w-full px-4 py-3 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -41,11 +41,11 @@ export const App: React.FC = () => {
               <>
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    isConnected ? "bg-green-400" : "bg-red-400"
+                    isDashboardConnected ? "bg-green-400" : "bg-red-400"
                   }`}
                 />
                 <span className="text-sm font-mono">
-                  {isConnected ? "Connected" : "Disconnected"}
+                  {isDashboardConnected ? "Connected" : "Disconnected"}
                   {targetDevice && ` - Targeting: ${targetDevice.deviceName}`}
                 </span>
               </>

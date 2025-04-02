@@ -13,7 +13,9 @@ export default function useConnectedUsers({
   socketURL,
   showOfflineDevices,
 }: Props) {
-  const [isConnected, setIsConnected] = useState(!!socket?.connected);
+  const [isDashboardConnected, setIsDashboardConnected] = useState(
+    !!socket?.connected
+  );
   const [allDevices, setAllDevices] = useState<User[]>([]);
 
   if (!socket) {
@@ -32,10 +34,10 @@ export default function useConnectedUsers({
   }
   useEffect(() => {
     function onConnect() {
-      setIsConnected(true);
+      setIsDashboardConnected(true);
     }
     function onDisconnect() {
-      setIsConnected(false);
+      setIsDashboardConnected(false);
     }
     !socket.connected && connect();
 
@@ -63,7 +65,7 @@ export default function useConnectedUsers({
     socket,
     connect,
     disconnect,
-    isConnected,
+    isDashboardConnected,
     allDevices: filteredDevices,
   };
 }

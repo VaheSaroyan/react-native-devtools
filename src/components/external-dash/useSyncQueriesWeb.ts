@@ -51,7 +51,7 @@ export interface OnlineManagerMessage {
 
 interface Props {
   queryClient: QueryClient; // React Query client instance
-  selectedDevice: string; // Currently selected device
+  targetDeviceName: string; // Currently selected device name
   socket: Socket; // Socket.io client instance
 }
 
@@ -66,17 +66,17 @@ interface Props {
  */
 export function useSyncQueriesWeb({
   queryClient,
-  selectedDevice,
+  targetDeviceName,
   socket,
 }: Props) {
   // Store selectedDevice in a ref to avoid effect re-runs
-  const selectedDeviceRef = useRef(selectedDevice);
+  const selectedDeviceRef = useRef(targetDeviceName);
   // For logging clarity
   const LOG_PREFIX = "[DASHBOARD]";
 
   // Update ref when selectedDevice changes and handle device switching
   useEffect(() => {
-    selectedDeviceRef.current = selectedDevice;
+    selectedDeviceRef.current = targetDeviceName;
 
     if (
       socket.connected &&
@@ -104,7 +104,7 @@ export function useSyncQueriesWeb({
       );
       socket.emit("request-initial-state", queryInitialStateMessage);
     }
-  }, [selectedDevice, socket, queryClient]);
+  }, [targetDeviceName, socket, queryClient]);
 
   useEffect(() => {
     if (!socket) {

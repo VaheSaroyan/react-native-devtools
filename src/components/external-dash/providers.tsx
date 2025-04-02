@@ -7,11 +7,15 @@ import { User } from "../../types/User";
 import { Socket } from "socket.io-client";
 interface Props {
   children: React.ReactNode;
-  selectedDevice: string;
+  targetDeviceName: string;
   socket: Socket;
 }
 
-export default function Providers({ children, selectedDevice, socket }: Props) {
+export default function Providers({
+  children,
+  targetDeviceName,
+  socket,
+}: Props) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -26,7 +30,7 @@ export default function Providers({ children, selectedDevice, socket }: Props) {
         },
       })
   );
-  useSyncQueriesWeb({ queryClient, selectedDevice, socket });
+  useSyncQueriesWeb({ queryClient, targetDeviceName, socket });
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
