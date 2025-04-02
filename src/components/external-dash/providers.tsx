@@ -2,19 +2,11 @@
 // extracting this part out into it's own file with 'use client' on top
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { useSyncQueriesWeb } from "./useSyncQueriesWeb";
-import { Socket } from "socket.io-client";
 interface Props {
   children: React.ReactNode;
-  targetDeviceName: string;
-  socket: Socket;
 }
 
-export default function Providers({
-  children,
-  targetDeviceName,
-  socket,
-}: Props) {
+export default function Providers({ children }: Props) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -29,7 +21,6 @@ export default function Providers({
         },
       })
   );
-  useSyncQueriesWeb({ queryClient, targetDeviceName, socket });
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

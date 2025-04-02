@@ -1,4 +1,9 @@
-import { onlineManager, QueryClient, QueryKey } from "@tanstack/react-query";
+import {
+  onlineManager,
+  QueryClient,
+  QueryKey,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
 import { Hydrate } from "./shared/hydration";
@@ -50,7 +55,6 @@ export interface OnlineManagerMessage {
 }
 
 interface Props {
-  queryClient: QueryClient; // React Query client instance
   targetDeviceName: string; // Currently selected device name
   socket: Socket; // Socket.io client instance
 }
@@ -64,11 +68,8 @@ interface Props {
  * - Processing query state updates from devices
  * - Tracking connected devices
  */
-export function useSyncQueriesWeb({
-  queryClient,
-  targetDeviceName,
-  socket,
-}: Props) {
+export function useSyncQueriesWeb({ targetDeviceName, socket }: Props) {
+  const queryClient = useQueryClient();
   // Store selectedDevice in a ref to avoid effect re-runs
   const selectedDeviceRef = useRef(targetDeviceName);
   // For logging clarity

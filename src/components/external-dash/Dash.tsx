@@ -6,9 +6,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
-import Providers from "./providers";
 import { CLIENT_URL } from "../../config";
-
+import { useSyncQueriesWeb } from "./useSyncQueriesWeb";
 export const Dash: React.FC = () => {
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
   const { allDevices, isDashboardConnected, socket } = useConnectedUsers({
@@ -32,8 +31,10 @@ export const Dash: React.FC = () => {
     setTargetDevice(foundDevice);
   }, [setTargetDevice, allDevices, targetDeviceName]);
 
+  useSyncQueriesWeb({ targetDeviceName, socket });
+
   return (
-    <Providers targetDeviceName={targetDeviceName} socket={socket}>
+    <div>
       <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
         <header className="w-full px-4 py-3 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -126,6 +127,6 @@ export const Dash: React.FC = () => {
         </main>
       </div>
       <ReactQueryDevtools initialIsOpen />
-    </Providers>
+    </div>
   );
 };
