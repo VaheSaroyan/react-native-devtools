@@ -92,9 +92,7 @@ export default function socketHandle({ io }: Props) {
       }, Was Dashboard: ${wasDashboard}`
     );
 
-    // Sends new list of users to everyone connected
-    io.emit("users-update", users);
-    // Also send the complete device history list
+    // Also send the complete device history list (excluding dashboard)
     io.emit(
       "all-devices-update",
       allDevices.filter((device) => device.deviceName !== "Dashboard")
@@ -161,8 +159,7 @@ export default function socketHandle({ io }: Props) {
           });
         }
 
-        // Notify all clients of updated user list
-        io.emit("users-update", users);
+        // Notify all clients of updated device list
         io.emit(
           "all-devices-update",
           allDevices.filter((device) => device.deviceName !== "Dashboard")
@@ -239,14 +236,13 @@ export default function socketHandle({ io }: Props) {
         console.log(`${LOG_PREFIX} Registered dashboard client with ID: ${id}`);
       }
 
-      // Notify all clients of updated user list
-      io.emit("users-update", users);
+      // Notify all clients of updated device list
       io.emit(
         "all-devices-update",
         allDevices.filter((device) => device.deviceName !== "Dashboard")
       );
       console.log(
-        `${LOG_PREFIX} Updated users list: ${users
+        `${LOG_PREFIX} Updated device list: ${users
           .map((u) => u.deviceName)
           .join(", ")}`
       );

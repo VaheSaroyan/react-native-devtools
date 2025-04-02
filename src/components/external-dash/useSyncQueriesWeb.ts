@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
 import { Hydrate } from "./shared/hydration";
 import { SyncMessage } from "./shared/types";
-import { User } from "../../types/User";
 
 /**
  * Query actions that can be performed on a query.
@@ -52,7 +51,6 @@ export interface OnlineManagerMessage {
 
 interface Props {
   queryClient: QueryClient; // React Query client instance
-  setDevices: React.Dispatch<React.SetStateAction<User[]>>; // Function to update device list
   selectedDevice: string; // Currently selected device
   socket: Socket; // Socket.io client instance
 }
@@ -68,7 +66,6 @@ interface Props {
  */
 export function useSyncQueriesWeb({
   queryClient,
-  setDevices,
   selectedDevice,
   socket,
 }: Props) {
@@ -242,25 +239,14 @@ export function useSyncQueriesWeb({
       }
     });
 
-    // Subscribe to device changes from the server
-    socket.on("users-update", (updatedUsers: User[]) => {
-      console.log(
-        `${LOG_PREFIX} Users updated: ${updatedUsers
-          .map((u) => u.deviceName)
-          .join(", ")}`
-      );
-      setDevices(updatedUsers);
-    });
-
     // Cleanup all subscriptions
     return () => {
       console.log(`${LOG_PREFIX} Cleaning up event listeners`);
       socket.off("query-sync");
-      socket.off("users-update");
       onlineManagerUnsubscribe();
       querySubscription();
     };
-  }, [queryClient, socket, setDevices]);
+  }, [queryClient, socket]);
 
   return { isConnected: !!socket };
 }

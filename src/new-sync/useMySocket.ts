@@ -192,9 +192,6 @@ export function useMySocket({ deviceName, socketURL }: Props) {
       socketRef.current.on("connect", onConnect);
       socketRef.current.on("disconnect", onDisconnect);
 
-      // Track list of connected users
-      socketRef.current.on("users-update", onUsersUpdate);
-
       // Clean up event listeners on unmount but don't disconnect
       return () => {
         if (socketRef.current) {
@@ -203,7 +200,6 @@ export function useMySocket({ deviceName, socketURL }: Props) {
           socketRef.current.off("disconnect", onDisconnect);
           socketRef.current.off("connect_error", onConnectError);
           socketRef.current.off("connect_timeout", onConnectTimeout);
-          socketRef.current.off("users-update", onUsersUpdate);
           // Don't disconnect socket on component unmount
           // We want it to remain connected for the app's lifetime
         }
@@ -211,7 +207,6 @@ export function useMySocket({ deviceName, socketURL }: Props) {
     } catch (error) {
       console.error(`${logPrefix} Failed to initialize socket:`, error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persistentDeviceId]);
 
   // Update the socket query parameters when deviceName changes

@@ -5,11 +5,15 @@ import { ClientQuery } from "../../types/ClientQuery";
 interface Props {
   query: ClientQuery;
   socketURL: string;
+  showOfflineDevices: boolean;
 }
 let socket = null as Socket | null; // Module-level variable to store the socket instance
-export default function useConnectedUsers({ query, socketURL }: Props) {
+export default function useConnectedUsers({
+  query,
+  socketURL,
+  showOfflineDevices,
+}: Props) {
   const [isConnected, setIsConnected] = useState(!!socket?.connected);
-  const [users, setUsers] = useState<User[]>([]);
   const [allDevices, setAllDevices] = useState<User[]>([]);
 
   if (!socket) {
@@ -34,10 +38,6 @@ export default function useConnectedUsers({ query, socketURL }: Props) {
       setIsConnected(false);
     }
     !socket.connected && connect();
-    // Global user list returned from server whenever a new user is added
-    socket.on("users-update", (newUsers: User[]) => {
-      setUsers(newUsers);
-    });
 
     // Listen for all devices updates (including offline devices)
     socket.on("all-devices-update", (devices: User[]) => {
@@ -48,7 +48,6 @@ export default function useConnectedUsers({ query, socketURL }: Props) {
     socket?.on("disconnect", onDisconnect);
 
     return () => {
-      socket.off("users-update");
       socket.off("all-devices-update");
       socket.off("connect");
       socket.off("disconnect");
@@ -56,5 +55,15 @@ export default function useConnectedUsers({ query, socketURL }: Props) {
       disconnect();
     };
   }, []);
-  return { socket, connect, disconnect, isConnected, users, allDevices };
+
+  const filteredDevices = showOfflineDevices
+    ? allDevices
+    : allDevices.filter((device) => device.isConnected);
+  return {
+    socket,
+    connect,
+    disconnect,
+    isConnected,
+    allDevices: filteredDevices,
+  };
 }
