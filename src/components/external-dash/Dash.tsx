@@ -1,35 +1,37 @@
 import React, { useEffect, useState } from "react";
-import useConnectedUsers from "./_hooks/useConnectedUsers";
 import { User } from "./types/User";
 import "../../index.css";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
-import { CLIENT_URL } from "../../config";
 import { useSyncQueriesWeb } from "./useSyncQueriesWeb";
-export const Dash: React.FC = () => {
-  const [showOfflineDevices, setShowOfflineDevices] = useState(true);
-  const { allDevices, isDashboardConnected, socket } = useConnectedUsers({
-    query: {
-      deviceName: "Dashboard",
-    },
-    socketURL: CLIENT_URL,
-    showOfflineDevices,
-  });
-
+import { Socket } from "socket.io-client";
+interface DashProps {
+  allDevices: User[];
+  isDashboardConnected: boolean;
+  socket: Socket;
+}
+export const Dash: React.FC<DashProps> = ({
+  isDashboardConnected,
+  socket,
+  allDevices,
+}) => {
   const [targetDeviceName, setTargetDeviceName] = useState(
     "Please select a user"
   );
   const [targetDevice, setTargetDevice] = useState<User>();
-
+  const [showOfflineDevices, setShowOfflineDevices] = useState(true);
+  const filteredDevices = showOfflineDevices
+    ? allDevices
+    : allDevices.filter((device) => device.isConnected);
   // Find the target device
   useEffect(() => {
-    const foundDevice = allDevices?.find(
+    const foundDevice = filteredDevices?.find(
       (device) => device.deviceName === targetDeviceName
     );
     setTargetDevice(foundDevice);
-  }, [setTargetDevice, allDevices, targetDeviceName]);
+  }, [setTargetDevice, filteredDevices, targetDeviceName]);
 
   useSyncQueriesWeb({ targetDeviceName, socket });
 
@@ -38,7 +40,7 @@ export const Dash: React.FC = () => {
       <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
         <header className="w-full px-4 py-3 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-2">
-            {allDevices.length > 0 && (
+            {filteredDevices.length > 0 && (
               <>
                 <div
                   className={`w-3 h-3 rounded-full ${
@@ -51,7 +53,7 @@ export const Dash: React.FC = () => {
                 </span>
               </>
             )}
-            {allDevices.length === 0 && (
+            {filteredDevices.length === 0 && (
               <span className="text-sm font-mono text-gray-400">
                 No devices available
               </span>
@@ -71,7 +73,7 @@ export const Dash: React.FC = () => {
             <DeviceSelection
               selectedUser={targetDeviceName}
               setSelectedUser={setTargetDeviceName}
-              allDevices={allDevices}
+              allDevices={filteredDevices}
             />
           </div>
         </header>
@@ -79,19 +81,21 @@ export const Dash: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-4">
           <div className="px-2 max-w-3xl mx-auto">
             {/* Device count and stats */}
-            {allDevices.length > 0 && (
+            {filteredDevices.length > 0 && (
               <div className="text-gray-400 text-sm mb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    Showing {allDevices.length}{" "}
+                    Showing {filteredDevices.length}{" "}
                     {showOfflineDevices ? "" : "connected"}{" "}
-                    {allDevices.length === 1 ? "device" : "devices"}
+                    {filteredDevices.length === 1 ? "device" : "devices"}
                     {showOfflineDevices && (
                       <span>
                         {" "}
-                        ({allDevices.filter((d) => d.isConnected).length}{" "}
+                        ({
+                          filteredDevices.filter((d) => d.isConnected).length
+                        }{" "}
                         online,{" "}
-                        {allDevices.filter((d) => !d.isConnected).length}{" "}
+                        {filteredDevices.filter((d) => !d.isConnected).length}{" "}
                         offline)
                       </span>
                     )}
@@ -113,7 +117,7 @@ export const Dash: React.FC = () => {
             )}
 
             {/* Always show all devices */}
-            {allDevices.map((device) => (
+            {filteredDevices.map((device) => (
               <UserInfo
                 key={device.id}
                 userData={device}

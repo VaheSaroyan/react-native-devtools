@@ -5,14 +5,9 @@ import { ClientQuery } from "../types/ClientQuery";
 interface Props {
   query: ClientQuery;
   socketURL: string;
-  showOfflineDevices: boolean;
 }
 let socket = null as Socket | null; // Module-level variable to store the socket instance
-export default function useConnectedUsers({
-  query,
-  socketURL,
-  showOfflineDevices,
-}: Props) {
+export default function useConnectedUsers({ query, socketURL }: Props) {
   const [isDashboardConnected, setIsDashboardConnected] = useState(
     !!socket?.connected
   );
@@ -58,14 +53,11 @@ export default function useConnectedUsers({
     };
   }, []);
 
-  const filteredDevices = showOfflineDevices
-    ? allDevices
-    : allDevices.filter((device) => device.isConnected);
   return {
     socket,
     connect,
     disconnect,
     isDashboardConnected,
-    allDevices: filteredDevices,
+    allDevices,
   };
 }
