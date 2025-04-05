@@ -5,54 +5,49 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
-import { useSyncQueriesWeb } from "./useSyncQueriesWeb";
-import { Socket } from "socket.io-client";
 interface DashProps {
   allDevices: User[];
   isDashboardConnected: boolean;
-  socket: Socket;
+  targetDevice: User;
+  setTargetDevice: (device: User) => void;
 }
 export const Dash: React.FC<DashProps> = ({
   isDashboardConnected,
-  socket,
   allDevices,
+  targetDevice,
+  setTargetDevice,
 }) => {
-  const [targetDeviceName, setTargetDeviceName] = useState(
-    "Please select a user"
-  );
-  const [targetDevice, setTargetDevice] = useState<User>();
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
   const filteredDevices = showOfflineDevices
     ? allDevices
-    : allDevices.filter((device) => device.isConnected);
+    : allDevices.filter((device) => {
+        if (typeof device === "string") {
+          return false;
+        }
+        return device.isConnected;
+      });
   // Find the target device
   useEffect(() => {
-    const foundDevice = filteredDevices?.find(
-      (device) => device.deviceName === targetDeviceName
-    );
-    setTargetDevice(foundDevice);
-  }, [setTargetDevice, filteredDevices, targetDeviceName]);
-
-  useSyncQueriesWeb({ targetDeviceName, socket });
+    const foundDevice = filteredDevices?.find((device) => {
+      return device.deviceId === targetDevice.deviceId;
+    });
+    foundDevice && setTargetDevice(foundDevice);
+  }, [setTargetDevice, filteredDevices, targetDevice]);
 
   return (
     <div>
       <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
         <header className="w-full px-4 py-3 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-2">
-            {filteredDevices.length > 0 && (
-              <>
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    isDashboardConnected ? "bg-green-400" : "bg-red-400"
-                  }`}
-                />
-                <span className="text-sm font-mono">
-                  {isDashboardConnected ? "Connected" : "Disconnected"}
-                  {targetDevice && ` - Targeting: ${targetDevice.deviceName}`}
-                </span>
-              </>
-            )}
+            <div
+              className={`w-3 h-3 rounded-full ${
+                isDashboardConnected ? "bg-green-400" : "bg-red-400"
+              }`}
+            />
+            <span className="text-sm font-mono">
+              {isDashboardConnected ? "Connected" : "Disconnected"}
+              {targetDevice && ` - Targeting: ${targetDevice?.deviceName}`}
+            </span>
             {filteredDevices.length === 0 && (
               <span className="text-sm font-mono text-gray-400">
                 No devices available
@@ -71,8 +66,8 @@ export const Dash: React.FC<DashProps> = ({
               <span className="ml-2 text-sm">Show offline devices</span>
             </label>
             <DeviceSelection
-              selectedUser={targetDeviceName}
-              setSelectedUser={setTargetDeviceName}
+              selectedDevice={targetDevice}
+              setSelectedDevice={setTargetDevice}
               allDevices={filteredDevices}
             />
           </div>
@@ -101,12 +96,12 @@ export const Dash: React.FC<DashProps> = ({
                     )}
                   </div>
                   <div>
-                    {targetDeviceName !== "All" && targetDevice && (
+                    {targetDevice.deviceId !== "All" && targetDevice && (
                       <span className="text-blue-400 font-medium">
                         Targeting: {targetDevice.deviceName}
                       </span>
                     )}
-                    {targetDeviceName === "All" && (
+                    {targetDevice.deviceId === "All" && (
                       <span className="text-blue-400 font-medium">
                         Targeting: All Devices
                       </span>
@@ -122,8 +117,8 @@ export const Dash: React.FC<DashProps> = ({
                 key={device.id}
                 userData={device}
                 isTargeted={
-                  targetDeviceName === "All" ||
-                  targetDeviceName === device.deviceName
+                  targetDevice.deviceId === "All" ||
+                  targetDevice.deviceId === device.deviceId
                 }
               />
             ))}

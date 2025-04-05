@@ -29,6 +29,7 @@ export const getPlatform = (): { os: string; name: string } => {
     if (isReactNative()) {
       try {
         // Dynamic import to avoid bundling issues
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { Platform } = require("react-native");
         const os = Platform.OS;
         const name = os.charAt(0).toUpperCase() + os.slice(1);
@@ -102,6 +103,7 @@ export const getStorage = (): StorageInterface => {
     try {
       // Dynamic import to avoid bundling issues
       const AsyncStorage =
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         require("@react-native-async-storage/async-storage").default;
       return AsyncStorage;
     } catch (e) {

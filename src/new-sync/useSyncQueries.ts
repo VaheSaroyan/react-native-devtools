@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { QueryKey } from "@tanstack/query-core";
 import { onlineManager, QueryClient } from "@tanstack/react-query";
 
 import { Dehydrate } from "./hydration";
-import { SyncMessage } from "./types";
+import { SyncMessage, User } from "./types";
 import { useMySocket } from "./useMySocket";
+import { getOrCreateDeviceId } from "./getOrCreateDeviceId";
 
 /**
  * Query actions that can be performed on a query.
@@ -37,24 +38,21 @@ interface QueryActionMessage {
   queryKey: QueryKey; // Key array used to identify the query
   data: unknown; // Data payload (if applicable)
   action: QueryActions; // Action to perform
-  targetDevice: string; // Device to target ('All' for all devices)
-}
-
-/**
- * Message structure for device information
- */
-interface DeviceInfoMessage {
-  deviceName: string;
+  device: User; // Device to target
 }
 
 /**
  * Determines if a message should be processed by the current device
  */
-function shouldProcessMessage(
-  targetDevice: string,
-  currentDeviceName: string
-): boolean {
-  return targetDevice === currentDeviceName || targetDevice === "All";
+interface ShouldProcessMessageProps {
+  targetDeviceId: string;
+  currentDeviceId: string;
+}
+function shouldProcessMessage({
+  targetDeviceId,
+  currentDeviceId,
+}: ShouldProcessMessageProps): boolean {
+  return targetDeviceId === currentDeviceId || targetDeviceId === "All";
 }
 
 /**
@@ -78,7 +76,7 @@ function checkVersion(queryClient: QueryClient) {
   }
 }
 
-interface useSyncQueriesProps {
+interface useSyncQueriesExternalProps {
   queryClient: QueryClient;
   deviceName: string;
   socketURL: string;
@@ -97,10 +95,25 @@ export function useSyncQueriesExternal({
   queryClient,
   deviceName,
   socketURL,
-}: useSyncQueriesProps) {
+}: useSyncQueriesExternalProps) {
+  // ==========================================================
+  // Persistent device ID - used to persist device identity
+  // across app restarts which helps us know when a device is
+  // the same device or a new device
+  // ==========================================================
+  const [persistentDeviceId, setPersistentDeviceId] = useState<string | null>(
+    null
+  );
+  // For logging clarity
+  const logPrefix = `[${deviceName}]`;
+  // ==========================================================
+  // Socket connection - Handles connection to the socket server and
+  // event listeners for the socket server
+  // ==========================================================
   const { connect, disconnect, isConnected, socket, users } = useMySocket({
     deviceName,
     socketURL,
+    persistentDeviceId,
   });
 
   // Use a ref to track previous connection state to avoid duplicate logs
@@ -124,10 +137,18 @@ export function useSyncQueriesExternal({
       return;
     }
 
-    // --- Event Handlers ---
+    // ==========================================================
+    // Event Handlers
+    // ==========================================================
 
+    // ==========================================================
     // Handle initial state requests from dashboard
+    // ==========================================================
     const initialStateSubscription = socket.on("request-initial-state", () => {
+      if (!persistentDeviceId) {
+        console.warn(`[${deviceName}] No persistent device ID found`);
+        return;
+      }
       console.log(`[${deviceName}] Dashboard is requesting initial state`);
       const dehydratedState = Dehydrate(queryClient as unknown as QueryClient);
       const syncMessage: SyncMessage = {
@@ -135,6 +156,7 @@ export function useSyncQueriesExternal({
         state: dehydratedState,
         deviceName,
         isOnlineManagerOnline: onlineManager.isOnline(),
+        persistentDeviceId,
       };
       socket.emit("query-sync", syncMessage);
       console.log(
@@ -142,14 +164,24 @@ export function useSyncQueriesExternal({
       );
     });
 
+    // ==========================================================
     // Online manager handler - Handle device internet connection state changes
+    // ==========================================================
     const onlineManagerSubscription = socket.on(
       "online-manager",
       (message: QueryActionMessage) => {
-        const { action, targetDevice } = message;
-
+        const { action, device } = message;
+        if (!persistentDeviceId) {
+          console.warn(`[${deviceName}] No persistent device ID found`);
+          return;
+        }
         // Only process if this message targets the current device
-        if (!shouldProcessMessage(targetDevice, deviceName)) {
+        if (
+          !shouldProcessMessage({
+            targetDeviceId: device.deviceId,
+            currentDeviceId: persistentDeviceId,
+          })
+        ) {
           return;
         }
 
@@ -172,14 +204,24 @@ export function useSyncQueriesExternal({
       }
     );
 
+    // ==========================================================
     // Query Actions handler - Process actions from the dashboard
+    // ==========================================================
     const queryActionSubscription = socket.on(
       "query-action",
       (message: QueryActionMessage) => {
-        const { queryHash, queryKey, data, action, targetDevice } = message;
-
+        const { queryHash, queryKey, data, action, device } = message;
+        if (!persistentDeviceId) {
+          console.warn(`[${deviceName}] No persistent device ID found`);
+          return;
+        }
         // Skip if not targeted at this device
-        if (!shouldProcessMessage(targetDevice, deviceName)) {
+        if (
+          !shouldProcessMessage({
+            targetDeviceId: device.deviceId,
+            currentDeviceId: persistentDeviceId,
+          })
+        ) {
           return;
         }
 
@@ -326,8 +368,14 @@ export function useSyncQueriesExternal({
       }
     );
 
+    // ==========================================================
     // Subscribe to query changes and sync to dashboard
+    // ==========================================================
     const unsubscribe = queryClient.getQueryCache().subscribe(() => {
+      if (!persistentDeviceId) {
+        console.warn(`[${deviceName}] No persistent device ID found`);
+        return;
+      }
       // Dehydrate the current state
       const dehydratedState = Dehydrate(queryClient as unknown as QueryClient);
 
@@ -337,31 +385,41 @@ export function useSyncQueriesExternal({
         state: dehydratedState,
         deviceName,
         isOnlineManagerOnline: onlineManager.isOnline(),
+        persistentDeviceId,
       };
 
       // Send message to dashboard
       socket.emit("query-sync", syncMessage);
     });
 
-    // Handle device info request - Send device info to dashboard
-    const deviceInfoSubscription = socket.on("device-request", () => {
-      console.log(`[${deviceName}] Dashboard requested device info`);
-      const syncMessage: DeviceInfoMessage = {
-        deviceName,
-      };
-      socket.emit("device-info", syncMessage);
-    });
-
+    // ==========================================================
     // Cleanup function to unsubscribe from all events
+    // ==========================================================
     return () => {
       console.log(`[${deviceName}] Cleaning up event listeners`);
       queryActionSubscription?.off();
       initialStateSubscription?.off();
       onlineManagerSubscription?.off();
       unsubscribe();
-      deviceInfoSubscription?.off();
     };
-  }, [queryClient, socket, deviceName, isConnected]);
+  }, [queryClient, socket, deviceName, isConnected, persistentDeviceId]);
+
+  // ==========================================================
+  // Get persistent device ID
+  // ==========================================================
+  useEffect(() => {
+    const fetchDeviceId = async () => {
+      const id = await getOrCreateDeviceId();
+      if (id) {
+        setPersistentDeviceId(id);
+        console.log(`${logPrefix} Using persistent device ID: ${id}`);
+      } else {
+        console.warn(`${logPrefix} Failed to get persistent device ID`);
+      }
+    };
+
+    fetchDeviceId();
+  }, [logPrefix]);
 
   return { connect, disconnect, isConnected, socket, users };
 }

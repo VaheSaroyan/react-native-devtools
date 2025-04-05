@@ -2,19 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { io as socketIO, Socket } from "socket.io-client";
 
 import { User } from "./User";
-import {
-  getStorage,
-  getPlatform,
-  getPlatformSpecificURL,
-} from "./platformUtils";
+import { getPlatform, getPlatformSpecificURL } from "./platformUtils";
 
 interface Props {
   deviceName: string; // Unique name to identify the device
   socketURL: string; // Base URL of the socket server (may be modified based on platform)
+  persistentDeviceId: string | null; // Persistent device ID
 }
-
-// Key for storing the persistent device ID in AsyncStorage
-const DEVICE_ID_STORAGE_KEY = "@rn_better_dev_tools_device_id";
 
 /**
  * Create a singleton socket instance that persists across component renders
@@ -22,50 +16,6 @@ const DEVICE_ID_STORAGE_KEY = "@rn_better_dev_tools_device_id";
  */
 let globalSocketInstance: Socket | null = null;
 let currentSocketURL = "";
-// Store the deviceId in memory as well
-let deviceId: string | null = null;
-
-/**
- * Generates a pseudo-random device ID
- */
-const generateDeviceId = (): string => {
-  return `device_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-};
-
-/**
- * Gets or creates a persistent device ID
- */
-const getOrCreateDeviceId = async (): Promise<string> => {
-  try {
-    // Check if we already have the ID in memory
-    if (deviceId) {
-      return deviceId;
-    }
-
-    // Get the storage implementation
-    const storage = getStorage();
-
-    // Try to get from storage
-    const storedId = await storage.getItem(DEVICE_ID_STORAGE_KEY);
-
-    if (storedId) {
-      deviceId = storedId;
-      return storedId;
-    }
-
-    // Generate and store a new ID if not found
-    const newId = generateDeviceId();
-    await storage.setItem(DEVICE_ID_STORAGE_KEY, newId);
-    deviceId = newId;
-    return newId;
-  } catch (error) {
-    console.error("Failed to get/create device ID:", error);
-    // Fallback to a temporary ID if storage fails
-    const tempId = generateDeviceId();
-    deviceId = tempId;
-    return tempId;
-  }
-};
 
 /**
  * Hook that handles socket connection for device-dashboard communication
@@ -77,15 +27,16 @@ const getOrCreateDeviceId = async (): Promise<string> => {
  * - Connection state tracking
  * - User list management
  */
-export function useMySocket({ deviceName, socketURL }: Props) {
+export function useMySocket({
+  deviceName,
+  socketURL,
+  persistentDeviceId,
+}: Props) {
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const initialized = useRef(false);
-  const [persistentDeviceId, setPersistentDeviceId] = useState<string | null>(
-    null
-  );
 
   // For logging clarity
   const logPrefix = `[${deviceName}]`;
@@ -119,17 +70,6 @@ export function useMySocket({ deviceName, socketURL }: Props) {
   const onConnectTimeout = () => {
     console.error(`${logPrefix} Socket connection timeout`);
   };
-
-  // Get persistent device ID
-  useEffect(() => {
-    const fetchDeviceId = async () => {
-      const id = await getOrCreateDeviceId();
-      setPersistentDeviceId(id);
-      console.log(`${logPrefix} Using persistent device ID: ${id}`);
-    };
-
-    fetchDeviceId();
-  }, [logPrefix]);
 
   // Main socket initialization - runs only once
   useEffect(() => {

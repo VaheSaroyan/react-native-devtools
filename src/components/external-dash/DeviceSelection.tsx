@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { User } from "./types/User";
 
 interface Props {
-  selectedUser: string;
-  setSelectedUser: (user: string) => void;
+  selectedDevice: User;
+  setSelectedDevice: (device: User) => void;
   allDevices?: User[];
 }
 
-interface UserOption {
+interface DeviceOption {
   value: string;
   label: string;
   disabled?: boolean;
@@ -15,8 +15,8 @@ interface UserOption {
 }
 
 export const DeviceSelection: React.FC<Props> = ({
-  selectedUser,
-  setSelectedUser,
+  selectedDevice,
+  setSelectedDevice,
   allDevices = [],
 }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +39,7 @@ export const DeviceSelection: React.FC<Props> = ({
   }, []);
 
   // Generate user options based on available users
-  const userOptions: UserOption[] = (() => {
+  const deviceOptions: DeviceOption[] = (() => {
     if (allDevices?.length === 0) {
       // No users available
       return [{ value: "", label: "No devices available", disabled: true }];
@@ -48,7 +48,7 @@ export const DeviceSelection: React.FC<Props> = ({
       const device = allDevices[0];
       return [
         {
-          value: device.deviceName || "Unknown Device Name",
+          value: device.deviceId,
           label: device.deviceName || "Unknown Device Name",
           isOffline: !device.isConnected,
         },
@@ -58,7 +58,7 @@ export const DeviceSelection: React.FC<Props> = ({
       return [
         { value: "All", label: "Target All Devices" },
         ...allDevices.map((device) => ({
-          value: device.deviceName || "Unknown Device Name",
+          value: device.deviceId,
           label: device.deviceName || "Unknown Device Name",
           isOffline: !device.isConnected,
         })),
@@ -66,32 +66,54 @@ export const DeviceSelection: React.FC<Props> = ({
     }
   })();
 
-  // Update selectedUser based on the number of available devices
+  // Update selectedDevice based on the number of available devices
   useEffect(() => {
+    // Skip if no devices are available but we already have the placeholder set
     if (allDevices?.length === 0) {
-      // No users available
-      setSelectedUser("No devices available");
+      if (selectedDevice.deviceId !== "No devices available") {
+        // No users available
+        setSelectedDevice({
+          deviceId: "No devices available",
+          deviceName: "No devices available",
+          isConnected: false,
+          id: "No devices available",
+        });
+      }
     } else if (allDevices?.length === 1) {
-      // Exactly one user available, auto-select it
-      const deviceName = allDevices[0].deviceName || "Unknown Device Name";
-      setSelectedUser(deviceName);
+      // Exactly one user available, auto-select it if not already selected
+      if (selectedDevice.deviceId !== allDevices[0].deviceId) {
+        setSelectedDevice(allDevices[0]);
+      }
     } else if (allDevices?.length > 1) {
       // Multiple users available
-      if (selectedUser === "No devices available" || !selectedUser) {
+      if (selectedDevice === null || !selectedDevice) {
         // If no valid selection, default to "All"
-        setSelectedUser("All");
+        setSelectedDevice({
+          deviceId: "All",
+          deviceName: "All",
+          isConnected: false,
+          id: "All",
+        });
       } else {
         // Check if the current selection is still valid
         const isValidSelection =
-          selectedUser === "All" ||
-          allDevices.some((device) => device.deviceName === selectedUser);
+          selectedDevice.deviceId === "All" ||
+          allDevices.some(
+            (device) => device.deviceId === selectedDevice.deviceId
+          );
 
         if (!isValidSelection) {
-          setSelectedUser("All");
+          setSelectedDevice({
+            deviceId: "All",
+            deviceName: "All",
+            isConnected: false,
+            id: "All",
+          });
         }
       }
     }
-  }, [allDevices, selectedUser, setSelectedUser]);
+    // Remove selectedDevice from dependency array to prevent infinite loops
+  }, [allDevices, setSelectedDevice]);
 
   return (
     <div className="relative w-64" ref={dropdownRef}>
@@ -105,11 +127,11 @@ export const DeviceSelection: React.FC<Props> = ({
         onClick={() => allDevices?.length > 0 && setIsOpen(!isOpen)}
       >
         <span className="truncate mr-2">
-          {selectedUser === "No devices available"
+          {selectedDevice.deviceId === "No devices available"
             ? "No devices available"
-            : selectedUser === "All"
+            : selectedDevice.deviceId === "All"
             ? "Target: All Devices"
-            : `Target: ${selectedUser}`}
+            : `Target: ${selectedDevice.deviceName}`}
         </span>
         {allDevices?.length > 0 && (
           <svg
@@ -137,18 +159,40 @@ export const DeviceSelection: React.FC<Props> = ({
           <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">
             Select device to target
           </div>
-          {userOptions.map((option, index) => (
+          {deviceOptions.map((option, index) => (
             <div
               key={index}
               className={`px-4 py-2 text-sm font-mono hover:bg-gray-700 cursor-pointer ${
                 option.disabled ? "opacity-50 cursor-not-allowed" : ""
-              } ${selectedUser === option.value ? "bg-gray-700" : ""} ${
-                option.isOffline ? "text-gray-400" : ""
-              }`}
+              } ${
+                selectedDevice.deviceId === option.value ? "bg-gray-700" : ""
+              } ${option.isOffline ? "text-gray-400" : ""}`}
               onClick={() => {
                 if (!option.disabled) {
-                  setSelectedUser(option.value);
-                  setIsOpen(false);
+                  // If ALL set to all
+                  if (option.value === "All") {
+                    setSelectedDevice({
+                      deviceId: "All",
+                      deviceName: "All",
+                      isConnected: false,
+                      id: "All",
+                    });
+                  } else {
+                    // Otherwise, find the device and select it
+                    const device = allDevices.find(
+                      (device) => device.deviceId === option.value
+                    );
+                    if (device) {
+                      setSelectedDevice(device);
+                      setIsOpen(false);
+                    } else {
+                      console.error(
+                        "Device selection not found",
+                        option.value,
+                        allDevices
+                      );
+                    }
+                  }
                 }
               }}
             >

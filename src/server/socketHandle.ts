@@ -104,9 +104,9 @@ export default function socketHandle({ io }: Props) {
     );
   }
 
-  /**
-   * Add a new user to the connected users list with unique naming
-   */
+  // ==========================================================
+  // Add a new user to the connected users list with unique naming
+  // ==========================================================
   function addNewUser({ id, deviceName, deviceId, platform }: User) {
     // Check if we're reconnecting an existing device by deviceId
     if (deviceId) {
@@ -249,23 +249,17 @@ export default function socketHandle({ io }: Props) {
     }
   }
 
-  // Helper to check if a device is currently connected
-  function isDeviceConnected(deviceId: string | undefined): boolean {
-    if (!deviceId) return false;
-    return activeConnectionsMap.has(deviceId);
-  }
-
-  /**
-   * Handle generic user messages (for debugging purposes)
-   */
+  // ==========================================================
+  // Handle generic user messages (for debugging purposes)
+  // ==========================================================
   function handleUserMessage(message: string, deviceName: string) {
     console.log(`${LOG_PREFIX} Message from ${deviceName}: ${message}`);
     io.emit("message", `Device ${deviceName} sent message: ${message}`);
   }
 
-  /**
-   * Forward query sync messages only to dashboard clients
-   */
+  // ==========================================================
+  // Forward query sync messages only to dashboard clients
+  // ==========================================================
   function forwardQuerySyncToDashboards(message: SyncMessage) {
     if (dashboardClients.length === 0) {
       console.log(
@@ -278,8 +272,62 @@ export default function socketHandle({ io }: Props) {
       `${LOG_PREFIX} Forwarding query sync from ${message.deviceName} to ${dashboardClients.length} dashboard(s)`
     );
 
-    dashboardClients.forEach((dashboardId) => {
-      io.to(dashboardId).emit("query-sync", message);
+    // First try to send directly to each dashboard client (more reliable)
+    let sentSuccessfully = false;
+
+    // Log the current socket connections for debugging
+    const socketIds = Array.from(io.sockets.sockets.keys());
+    console.log(
+      `${LOG_PREFIX} Current socket connections: ${socketIds.join(", ")}`
+    );
+
+    // Check if dashboard clients are still valid
+    dashboardClients = dashboardClients.filter((id) =>
+      io.sockets.sockets.has(id)
+    );
+
+    // First attempt: try to directly send to each dashboard client
+    for (const dashboardId of dashboardClients) {
+      try {
+        const socket = io.sockets.sockets.get(dashboardId);
+        if (socket) {
+          console.log(
+            `${LOG_PREFIX} Sending directly to dashboard ${dashboardId}`
+          );
+          socket.emit("query-sync", message);
+          sentSuccessfully = true;
+          console.log(
+            `${LOG_PREFIX} Successfully sent to dashboard ${dashboardId}`
+          );
+        } else {
+          console.log(
+            `${LOG_PREFIX} Dashboard socket ${dashboardId} not found`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `${LOG_PREFIX} Error sending to dashboard ${dashboardId}:`,
+          error
+        );
+      }
+    }
+
+    // Fallback: If direct sending failed, try broadcasting to all clients
+    // The dashboard clients will filter based on their selected device
+    if (!sentSuccessfully) {
+      console.log(
+        `${LOG_PREFIX} Fallback: Broadcasting query sync to all clients`
+      );
+      io.emit("query-sync", message);
+    }
+
+    // Also log detailed message information for debugging
+    console.log(`${LOG_PREFIX} Message details:`, {
+      deviceName: message.deviceName,
+      type: message.type,
+      persistentDeviceId: message.persistentDeviceId,
+      queriesCount: message.state.queries.length,
+      mutationsCount: message.state.mutations.length,
     });
   }
 
@@ -290,11 +338,19 @@ export default function socketHandle({ io }: Props) {
    * @param actionName Description of the action for logging
    */
   function withTargetUsers(
-    targetDevice: string,
+    targetDevice: User,
     action: (user: User) => void,
     actionName: string
   ) {
-    if (targetDevice === "All") {
+    // Skip if the targetDevice indicates there are no devices available
+    if (targetDevice.deviceId === "No devices available") {
+      console.log(
+        `${LOG_PREFIX} Skipping ${actionName} - No devices available`
+      );
+      return;
+    }
+
+    if (targetDevice.deviceId === "All") {
       console.log(`${LOG_PREFIX} Broadcasting ${actionName} to all devices`);
       // Broadcast to all non-dashboard clients
       const deviceUsers = users.filter(
@@ -309,7 +365,9 @@ export default function socketHandle({ io }: Props) {
       deviceUsers.forEach(action);
     } else {
       // Find the target device and send only to that device
-      const targetUser = users.find((user) => user.deviceName === targetDevice);
+      const targetUser = users.find(
+        (user) => user.deviceId === targetDevice.deviceId
+      );
 
       if (targetUser) {
         console.log(
@@ -317,12 +375,16 @@ export default function socketHandle({ io }: Props) {
         );
         action(targetUser);
       } else {
-        console.log(`${LOG_PREFIX} Target device ${targetDevice} not found`);
+        console.log(
+          `${LOG_PREFIX} Target device not found - DeviceId: ${targetDevice.deviceId}, DeviceName: ${targetDevice.deviceName}`
+        );
       }
     }
   }
 
+  // ==========================================================
   // Main socket connection handler
+  // ==========================================================
   io.on("connection", (socket: Socket) => {
     // Get the query parameters from the handshake
     const { deviceName, deviceId, platform } = socket.handshake.query as {
@@ -339,7 +401,9 @@ export default function socketHandle({ io }: Props) {
       }`
     );
 
-    // Register new user
+    // ==========================================================
+    // Add new user
+    // ==========================================================
     addNewUser({
       id: socket.id,
       deviceName: deviceName || "Unknown Device Name",
@@ -347,18 +411,26 @@ export default function socketHandle({ io }: Props) {
       platform: platform,
     });
 
-    // --- Event Handlers ---
+    // ==========================================================
+    // Event Handlers
+    // ==========================================================
 
+    // ==========================================================
     // Handle the disconnect event
+    // ==========================================================
     socket.on("disconnect", () => handleClose(socket.id));
 
+    // ==========================================================
     // Handle debug messages
+    // ==========================================================
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     socket.on("message", (msg: any) => {
       handleUserMessage(msg, deviceName || "Unknown");
     });
 
+    // ==========================================================
     // Listening for a message from the dashboard to a specific device
+    // ==========================================================
     socket.on(
       "sendToSpecificClient",
       ({
@@ -375,7 +447,9 @@ export default function socketHandle({ io }: Props) {
       }
     );
 
+    // ==========================================================
     // Listen for query-sync messages from devices and forward only to dashboard clients
+    // ==========================================================
     socket.on("query-sync", (message: SyncMessage) => {
       console.log(
         `${LOG_PREFIX} Query sync received from: ${message.deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
@@ -384,7 +458,9 @@ export default function socketHandle({ io }: Props) {
       forwardQuerySyncToDashboards(message);
     });
 
+    // ==========================================================
     // Handle query action messages from the dashboard to the devices
+    // ==========================================================
     socket.on("query-action", (message: QueryActionMessage) => {
       // Check if message exists before accessing properties
       if (!message) {
@@ -393,24 +469,22 @@ export default function socketHandle({ io }: Props) {
       }
 
       console.log(
-        `${LOG_PREFIX} Query action from dashboard - Action: ${message.action}, Target: ${message.targetDevice}`
+        `${LOG_PREFIX} Query action from dashboard - Action: ${message.action}, Target: ${message.device.deviceName}`
       );
 
       withTargetUsers(
-        message.targetDevice,
+        message.device,
         (user) => io.to(user.id).emit("query-action", message),
         "query action"
       );
     });
 
+    // ==========================================================
     // Handle dashboard requesting initial state from devices
+    // ==========================================================
     socket.on(
       "request-initial-state",
       (message: QueryRequestInitialStateMessage) => {
-        console.log(
-          `${LOG_PREFIX} Request initial state - Target: ${message.targetDevice}`
-        );
-
         // Check if message exists before accessing properties
         if (!message) {
           console.error(
@@ -418,6 +492,10 @@ export default function socketHandle({ io }: Props) {
           );
           return;
         }
+
+        console.log(
+          `${LOG_PREFIX} Request initial state - Target: ${message.targetDevice.deviceName} (${message.targetDevice.deviceId})`
+        );
 
         withTargetUsers(
           message.targetDevice,
@@ -430,10 +508,12 @@ export default function socketHandle({ io }: Props) {
       }
     );
 
+    // ==========================================================
     // Handle online manager messages from the dashboard to the devices
+    // ==========================================================
     socket.on("online-manager", (message: OnlineManagerMessage) => {
       console.log(
-        `${LOG_PREFIX} Online manager message from dashboard - Action: ${message.action}, Target: ${message.targetDevice}`
+        `${LOG_PREFIX} Online manager message from dashboard - Action: ${message.action}, Target: ${message.targetDevice.deviceName} (${message.targetDevice.deviceId})`
       );
 
       withTargetUsers(
