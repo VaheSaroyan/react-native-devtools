@@ -3,7 +3,7 @@ import type { QueryKey } from "@tanstack/query-core";
 import { onlineManager, QueryClient } from "@tanstack/react-query";
 
 import { Dehydrate } from "./hydration";
-import { SyncMessage, User } from "./types";
+import { SyncMessage } from "./types";
 import { useMySocket } from "./useMySocket";
 import { getOrCreateDeviceId } from "./getOrCreateDeviceId";
 
@@ -38,7 +38,15 @@ interface QueryActionMessage {
   queryKey: QueryKey; // Key array used to identify the query
   data: unknown; // Data payload (if applicable)
   action: QueryActions; // Action to perform
-  device: User; // Device to target
+  deviceId: string; // Device to target
+}
+
+/**
+ * Message structure for online manager actions from dashboard to devices
+ */
+interface OnlineManagerMessage {
+  action: "ACTION-ONLINE-MANAGER-ONLINE" | "ACTION-ONLINE-MANAGER-OFFLINE";
+  targetDeviceId: string; // Device ID to target ('All' || device)
 }
 
 /**
@@ -171,8 +179,8 @@ export function useSyncQueriesExternal({
     // ==========================================================
     const onlineManagerSubscription = socket.on(
       "online-manager",
-      (message: QueryActionMessage) => {
-        const { action, device } = message;
+      (message: OnlineManagerMessage) => {
+        const { action, targetDeviceId } = message;
         if (!persistentDeviceId) {
           console.warn(`[${deviceName}] No persistent device ID found`);
           return;
@@ -180,7 +188,7 @@ export function useSyncQueriesExternal({
         // Only process if this message targets the current device
         if (
           !shouldProcessMessage({
-            targetDeviceId: device.deviceId,
+            targetDeviceId: targetDeviceId,
             currentDeviceId: persistentDeviceId,
           })
         ) {
@@ -212,7 +220,7 @@ export function useSyncQueriesExternal({
     const queryActionSubscription = socket.on(
       "query-action",
       (message: QueryActionMessage) => {
-        const { queryHash, queryKey, data, action, device } = message;
+        const { queryHash, queryKey, data, action, deviceId } = message;
         if (!persistentDeviceId) {
           console.warn(`[${deviceName}] No persistent device ID found`);
           return;
@@ -220,7 +228,7 @@ export function useSyncQueriesExternal({
         // Skip if not targeted at this device
         if (
           !shouldProcessMessage({
-            targetDeviceId: device.deviceId,
+            targetDeviceId: deviceId,
             currentDeviceId: persistentDeviceId,
           })
         ) {

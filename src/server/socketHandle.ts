@@ -356,19 +356,20 @@ export default function socketHandle({ io }: Props) {
    * @param actionName Description of the action for logging
    */
   function withTargetUsers(
-    targetDevice: User,
+    targetDeviceId: string,
     action: (user: User) => void,
     actionName: string
   ) {
+    const deviceName = getDeviceFromDeviceId(targetDeviceId)?.deviceName;
     // Skip if the targetDevice indicates there are no devices available
-    if (targetDevice.deviceId === "No devices available") {
+    if (targetDeviceId === "No devices available") {
       console.log(
         `${LOG_PREFIX} Skipping ${actionName} - No devices available`
       );
       return;
     }
 
-    if (targetDevice.deviceId === "All") {
+    if (targetDeviceId === "All") {
       console.log(`${LOG_PREFIX} Broadcasting ${actionName} to all devices`);
       // Broadcast to all non-dashboard clients
       const deviceUsers = users.filter(
@@ -383,9 +384,7 @@ export default function socketHandle({ io }: Props) {
       deviceUsers.forEach(action);
     } else {
       // Find the target device and send only to that device
-      const targetUser = users.find(
-        (user) => user.deviceId === targetDevice.deviceId
-      );
+      const targetUser = users.find((user) => user.deviceId === targetDeviceId);
 
       if (targetUser) {
         console.log(
@@ -394,7 +393,7 @@ export default function socketHandle({ io }: Props) {
         action(targetUser);
       } else {
         console.log(
-          `${LOG_PREFIX} Target device not found - DeviceId: ${targetDevice.deviceId}, DeviceName: ${targetDevice.deviceName}`
+          `${LOG_PREFIX} Target device not found - DeviceId: ${targetDeviceId}, DeviceName: ${deviceName}`
         );
       }
     }
@@ -464,6 +463,7 @@ export default function socketHandle({ io }: Props) {
     // Handle query action messages from the dashboard to the devices
     // ==========================================================
     socket.on("query-action", (message: QueryActionMessage) => {
+      const deviceName = getDeviceFromDeviceId(message.deviceId)?.deviceName;
       // Check if message exists before accessing properties
       if (!message) {
         console.error(`${LOG_PREFIX} Error: query-action message is undefined`);
@@ -471,11 +471,11 @@ export default function socketHandle({ io }: Props) {
       }
 
       console.log(
-        `${LOG_PREFIX} Query action from dashboard - Action: ${message.action}, Target: ${message.device.deviceName}`
+        `${LOG_PREFIX} Query action from dashboard - Action: ${message.action}, Target: ${deviceName}`
       );
 
       withTargetUsers(
-        message.device,
+        message.deviceId,
         (user) => io.to(user.id).emit("query-action", message),
         "query action"
       );
@@ -487,6 +487,9 @@ export default function socketHandle({ io }: Props) {
     socket.on(
       "request-initial-state",
       (message: QueryRequestInitialStateMessage) => {
+        const deviceName = getDeviceFromDeviceId(
+          message.targetDeviceId
+        )?.deviceName;
         // Check if message exists before accessing properties
         if (!message) {
           console.error(
@@ -496,11 +499,11 @@ export default function socketHandle({ io }: Props) {
         }
 
         console.log(
-          `${LOG_PREFIX} Request initial state - Target: ${message.targetDevice.deviceName} (${message.targetDevice.deviceId})`
+          `${LOG_PREFIX} Request initial state - Target: ${deviceName} (${message.targetDeviceId})`
         );
 
         withTargetUsers(
-          message.targetDevice,
+          message.targetDeviceId,
           (user) =>
             io
               .to(user.id)
@@ -514,12 +517,15 @@ export default function socketHandle({ io }: Props) {
     // Handle online manager messages from the dashboard to the devices
     // ==========================================================
     socket.on("online-manager", (message: OnlineManagerMessage) => {
+      const deviceName = getDeviceFromDeviceId(
+        message.targetDeviceId
+      )?.deviceName;
       console.log(
-        `${LOG_PREFIX} Online manager message from dashboard - Action: ${message.action}, Target: ${message.targetDevice.deviceName} (${message.targetDevice.deviceId})`
+        `${LOG_PREFIX} Online manager message from dashboard - Action: ${message.action}, Target: ${deviceName} (${message.targetDeviceId})`
       );
 
       withTargetUsers(
-        message.targetDevice,
+        message.targetDeviceId,
         (user) => io.to(user.id).emit("online-manager", message),
         "online manager message"
       );

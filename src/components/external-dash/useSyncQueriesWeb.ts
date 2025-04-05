@@ -38,14 +38,14 @@ export interface QueryActionMessage {
   queryKey: QueryKey; // Key array used to identify the query
   data: unknown; // Data payload (if applicable)
   action: QueryActions; // Action to perform
-  device: User; // Device to target
+  deviceId: string; // Device ID to target
 }
 
 /**
  * Message structure for requesting initial state from devices
  */
 export interface QueryRequestInitialStateMessage {
-  targetDevice: User; // Device ID to request state from ('All' || device)
+  targetDeviceId: string; // Device ID to request state from ('All' || device)
 }
 
 /**
@@ -53,7 +53,7 @@ export interface QueryRequestInitialStateMessage {
  */
 export interface OnlineManagerMessage {
   action: "ACTION-ONLINE-MANAGER-ONLINE" | "ACTION-ONLINE-MANAGER-OFFLINE";
-  targetDevice: User; // Device ID to target ('All' || device)
+  targetDeviceId: string; // Device ID to target ('All' || device)
 }
 
 // --- Constants ---
@@ -91,7 +91,9 @@ const requestInitialState = (socket: Socket, targetDevice: User) => {
   console.log(
     `${LOG_PREFIX} Requesting initial state from: ${targetDevice.deviceName}`
   );
-  const message: QueryRequestInitialStateMessage = { targetDevice };
+  const message: QueryRequestInitialStateMessage = {
+    targetDeviceId: targetDevice.deviceId,
+  };
   socket.emit("request-initial-state", message);
 };
 
@@ -107,7 +109,7 @@ const sendQueryAction = (
   );
   const message: QueryActionMessage = {
     action,
-    device: targetDevice,
+    deviceId: targetDevice.deviceId,
     queryHash: query.queryHash,
     queryKey: query.queryKey,
     data: query.state.data, // Send current data state
@@ -130,7 +132,7 @@ const sendOnlineStatus = (
     action: isOnline
       ? "ACTION-ONLINE-MANAGER-ONLINE"
       : "ACTION-ONLINE-MANAGER-OFFLINE",
-    targetDevice,
+    targetDeviceId: targetDevice.deviceId,
   };
   socket.emit("online-manager", message);
   console.log(
