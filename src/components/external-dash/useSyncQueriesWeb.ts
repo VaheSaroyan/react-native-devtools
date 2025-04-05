@@ -4,11 +4,13 @@ import {
   QueryKey,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Hydrate } from "./shared/hydration";
 import { SyncMessage } from "./shared/types";
 import useConnectedUsers from "./_hooks/useConnectedUsers";
 import { User } from "./types/User";
+import { Socket } from "socket.io-client";
+
 /**
  * Query actions that can be performed on a query.
  * These actions are used to control query state on remote devices.
@@ -58,6 +60,84 @@ interface Props {
   targetDevice: User; // Currently selected device persistent ID
 }
 
+// --- Constants ---
+const LOG_PREFIX = "[DASHBOARD]";
+const INVALID_DEVICE_IDS = ["No devices available", "Please select a user"];
+
+// --- Helper Functions ---
+
+/** Checks if the provided device is valid for communication. */
+const isValidDevice = (device: User | null): boolean => {
+  return !!device && !INVALID_DEVICE_IDS.includes(device.deviceId);
+};
+
+/** Hydrates the query client with state received from a device */
+const hydrateState = (queryClient: QueryClient, message: SyncMessage) => {
+  console.log(
+    `${LOG_PREFIX} Hydrating QueryClient with state from: ${message.deviceName}`
+  );
+  Hydrate(queryClient, message.state, {
+    defaultOptions: {
+      queries: {
+        staleTime: Infinity, // Prevent automatic refetching
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+    },
+  });
+};
+
+/** Sends a request for initial state to the target device. */
+const requestInitialState = (socket: Socket, targetDevice: User) => {
+  console.log(
+    `${LOG_PREFIX} Requesting initial state from: ${targetDevice.deviceName}`
+  );
+  const message: QueryRequestInitialStateMessage = { targetDevice };
+  socket.emit("request-initial-state", message);
+};
+
+/** Sends a query action message to the target device. */
+const sendQueryAction = (
+  socket: Socket,
+  targetDevice: User,
+  action: QueryActions,
+  query: { queryHash: string; queryKey: QueryKey; state: { data: unknown } }
+) => {
+  console.log(
+    `${LOG_PREFIX} Forwarding query action: ${action} for query hash: ${query.queryHash} to device: ${targetDevice.deviceName}`
+  );
+  const message: QueryActionMessage = {
+    action,
+    device: targetDevice,
+    queryHash: query.queryHash,
+    queryKey: query.queryKey,
+    data: query.state.data, // Send current data state
+  };
+  socket.emit("query-action", message);
+};
+
+/** Sends an online status update message to the target device. */
+const sendOnlineStatus = (
+  socket: Socket,
+  targetDevice: User,
+  isOnline: boolean
+) => {
+  console.log(
+    `${LOG_PREFIX} Sending online status (${
+      isOnline ? "ONLINE" : "OFFLINE"
+    }) to: ${targetDevice.deviceName}`
+  );
+  const message: OnlineManagerMessage = {
+    action: isOnline
+      ? "ACTION-ONLINE-MANAGER-ONLINE"
+      : "ACTION-ONLINE-MANAGER-OFFLINE",
+    targetDevice,
+  };
+  socket.emit("online-manager", message);
+  console.log(
+    `${LOG_PREFIX} Online status message sent to: ${targetDevice.deviceName}`
+  );
+};
+
 /**
  * Hook used by the dashboard to sync with and control device queries
  *
@@ -77,270 +157,189 @@ export function useSyncQueriesWeb({ targetDevice }: Props) {
   const isConnected = !!socket && socket.connected;
 
   const queryClient = useQueryClient();
-  // Store selectedDevice in a ref to avoid effect re-runs
   const selectedDeviceRef = useRef(targetDevice);
-  // Track previous device ID to avoid duplicate logs
-  const prevDeviceIdRef = useRef<string | null>(null);
-  const isDeviceSelected =
-    !!selectedDeviceRef.current &&
-    selectedDeviceRef.current.deviceId !== "No users available";
-  // For logging clarity
-  const LOG_PREFIX = "[DASHBOARD]";
 
-  // Update ref when selectedDevice changes and handle device switching
-  useEffect(() => {
-    selectedDeviceRef.current = targetDevice;
+  // --- Callbacks ---
 
-    const validDeviceIds = ["All"];
-    const invalidDeviceIds = ["No devices available", "Please select a user"];
-
-    const isConnectedAndHasValidDevice =
-      isConnected &&
-      !!selectedDeviceRef.current &&
-      !invalidDeviceIds.includes(selectedDeviceRef.current.deviceId);
-
-    // Check if device ID has changed to avoid duplicate logs
-    const deviceIdChanged =
-      prevDeviceIdRef.current !== selectedDeviceRef.current.deviceId;
-    prevDeviceIdRef.current = selectedDeviceRef.current.deviceId;
-
-    if (isConnectedAndHasValidDevice) {
-      // Create message to request initial state from the selected device
-      const queryInitialStateMessage: QueryRequestInitialStateMessage = {
-        targetDevice: selectedDeviceRef.current,
-      };
-
-      console.log(
-        `${LOG_PREFIX} Device selection changed to: ${selectedDeviceRef.current.deviceName} (${selectedDeviceRef.current.deviceId})`
-      );
-      console.log(
-        `${LOG_PREFIX} Clearing query cache before requesting new state`
-      );
-
-      // Clear all Query cache and mutations when device changes
-      queryClient.clear();
-
-      // Request fresh state from devices
-      console.log(
-        `${LOG_PREFIX} Requesting initial state from: ${selectedDeviceRef.current.deviceName}`
-      );
-
-      // Ensure we have a listener before requesting state
-      setupQuerySyncListener();
-
-      // Now request the state
-      socket.emit("request-initial-state", queryInitialStateMessage);
-    } else if (isConnected && selectedDeviceRef.current && deviceIdChanged) {
-      // Only log when device ID has changed to reduce console spam
-      console.log(
-        `${LOG_PREFIX} Not requesting initial state - Invalid device selection: ${selectedDeviceRef.current.deviceName} (${selectedDeviceRef.current.deviceId})`
-      );
-    }
-  }, [targetDevice, socket, queryClient]);
-
-  // Separate function to set up the query-sync listener to ensure consistent behavior
-  const setupQuerySyncListener = () => {
-    if (!socket) return;
-
-    console.log(`${LOG_PREFIX} Setting up query-sync listener`);
-
-    // Remove any existing listener first
-    socket.off("query-sync");
-
-    // Set up the listener
-    socket.on("query-sync", (message: SyncMessage) => {
+  // Callback to handle incoming query sync messages
+  const handleQuerySync = useCallback(
+    (message: SyncMessage) => {
       console.log(
         `${LOG_PREFIX} Received query sync from: ${message.deviceName} (${message.type})`
       );
-      if (message.type === "dehydrated-state") {
-        // Only process data if it's from the selected device or if "all" is selected
-        if (
-          selectedDeviceRef.current.deviceId === "All" ||
-          message.persistentDeviceId === selectedDeviceRef.current.deviceId
-        ) {
-          console.log(
-            `${LOG_PREFIX} Processing sync from: ${message.deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
-          );
 
-          // Sync online manager state with device if it has changed
-          if (message.isOnlineManagerOnline !== onlineManager.isOnline()) {
-            console.log(
-              `${LOG_PREFIX} Setting online status to match device: ${
-                message.isOnlineManagerOnline ? "ONLINE" : "OFFLINE"
-              }`
-            );
-            onlineManager.setOnline(message.isOnlineManagerOnline);
-          }
+      if (message.type !== "dehydrated-state") return;
 
-          // Hydrate the query client with received state
-          hydrateState(queryClient, message);
-        } else {
+      const currentSelectedDevice = selectedDeviceRef.current;
+      const isFromSelectedDevice =
+        currentSelectedDevice.deviceId === "All" ||
+        message.persistentDeviceId === currentSelectedDevice.deviceId;
+
+      if (isFromSelectedDevice) {
+        console.log(
+          `${LOG_PREFIX} Processing sync from: ${message.deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
+        );
+
+        // Sync online manager state if needed
+        if (message.isOnlineManagerOnline !== onlineManager.isOnline()) {
           console.log(
-            `${LOG_PREFIX} Ignoring sync from: ${message.deviceName} # ${message.persistentDeviceId} - not from selected device ID # (${selectedDeviceRef.current.deviceId})`
+            `${LOG_PREFIX} Setting online status to match device: ${
+              message.isOnlineManagerOnline ? "ONLINE" : "OFFLINE"
+            }`
           );
+          onlineManager.setOnline(message.isOnlineManagerOnline);
         }
-      }
-    });
-  };
 
+        hydrateState(queryClient, message);
+      } else {
+        console.log(
+          `${LOG_PREFIX} Ignoring sync from: ${message.deviceName} # ${message.persistentDeviceId} - not selected device ID # (${currentSelectedDevice.deviceId})`
+        );
+      }
+    },
+    [queryClient] // Dependency on queryClient for hydrateState
+  );
+
+  // --- Effects ---
+
+  // Effect to handle device selection changes
   useEffect(() => {
-    // Only proceed if we have a valid server connection
-    if (!isConnected) {
-      console.log(`${LOG_PREFIX} Not connected to server`);
+    const previousDevice = selectedDeviceRef.current;
+    selectedDeviceRef.current = targetDevice; // Update the ref immediately
+
+    if (!isConnected || !socket) {
+      console.log(
+        `${LOG_PREFIX} Device selection changed, but not connected to server.`
+      );
       return;
     }
 
-    console.log(`${LOG_PREFIX} Setting up dashboard sync listeners`);
+    // Only log/clear/request if the device ID actually changed
+    if (previousDevice.deviceId === targetDevice.deviceId) {
+      return;
+    }
 
-    // Debug log to verify socket ID and connection status
     console.log(
-      `${LOG_PREFIX} Socket ID: ${socket.id}, Connected: ${socket.connected}`
+      `${LOG_PREFIX} Device selection changed to: ${targetDevice.deviceName} (${targetDevice.deviceId})`
     );
 
-    // Set up the query-sync listener immediately
-    setupQuerySyncListener();
+    if (isValidDevice(targetDevice)) {
+      console.log(
+        `${LOG_PREFIX} Clearing query cache before requesting new state`
+      );
+      queryClient.clear(); // Clear cache for the new device
+      requestInitialState(socket, targetDevice);
+    } else {
+      console.log(
+        `${LOG_PREFIX} Not requesting initial state - Invalid device selection: ${targetDevice.deviceName} (${targetDevice.deviceId})`
+      );
+      // Optionally clear cache even for invalid selection if desired
+      // queryClient.clear();
+    }
+  }, [targetDevice, isConnected, socket, queryClient]);
 
-    // ==========================================================
-    // Subscribe to online dashboard manager changes
-    // ==========================================================
+  // Effect to set up the main query-sync listener
+  useEffect(() => {
+    if (!isConnected || !socket) {
+      console.log(`${LOG_PREFIX} Cannot set up listeners: Not connected.`);
+      return;
+    }
+
+    console.log(`${LOG_PREFIX} Setting up query-sync listener`);
+    socket.on("query-sync", handleQuerySync);
+
+    return () => {
+      console.log(`${LOG_PREFIX} Cleaning up query-sync listener`);
+      socket.off("query-sync", handleQuerySync);
+    };
+  }, [isConnected, socket, handleQuerySync]);
+
+  // Effect to handle online manager status synchronization
+  useEffect(() => {
+    if (!isConnected || !socket) return;
+
     const onlineManagerUnsubscribe = onlineManager.subscribe(
       (isOnline: boolean) => {
+        const currentSelectedDevice = selectedDeviceRef.current;
         console.log(
           `${LOG_PREFIX} Online status changed: ${
             isOnline ? "ONLINE" : "OFFLINE"
           }`
         );
 
-        const invalidDeviceIds = [
-          "No devices available",
-          "Please select a user",
-        ];
-
-        // Only emit if we have a valid selectedDevice
-        if (
-          isDeviceSelected &&
-          !invalidDeviceIds.includes(selectedDeviceRef.current.deviceId)
-        ) {
-          // Create message to update online status on the target device
-          console.log(
-            `${LOG_PREFIX} Sending online status (${
-              isOnline ? "ONLINE" : "OFFLINE"
-            }) to: ${selectedDeviceRef.current.deviceName}`
-          );
-          const onlineManagerMessage: OnlineManagerMessage = {
-            action: isOnline
-              ? "ACTION-ONLINE-MANAGER-ONLINE"
-              : "ACTION-ONLINE-MANAGER-OFFLINE",
-            targetDevice: selectedDeviceRef.current,
-          };
-          socket.emit("online-manager", onlineManagerMessage);
-          console.log(
-            `${LOG_PREFIX} Online status message sent to: ${selectedDeviceRef.current.deviceName}`
-          );
+        if (isValidDevice(currentSelectedDevice)) {
+          sendOnlineStatus(socket, currentSelectedDevice, isOnline);
         } else {
           console.log(
-            `${LOG_PREFIX} Not sending online status - Invalid device selection or no device selected`
+            `${LOG_PREFIX} Not sending online status - Invalid or no device selected`
           );
         }
       }
     );
 
-    // ==========================================================
-    // Subscribe to query actions from the dashboard to the devices
-    // ==========================================================
-    const querySubscription = queryClient.getQueryCache().subscribe((event) => {
-      const invalidDeviceIds = ["No devices available", "Please select a user"];
+    return () => {
+      console.log(`${LOG_PREFIX} Cleaning up online manager listener`);
+      onlineManagerUnsubscribe();
+    };
+  }, [isConnected, socket]); // Depends on connection status and socket instance
 
-      // Only proceed if we have a valid selectedDevice
-      if (
-        !isDeviceSelected ||
-        invalidDeviceIds.includes(selectedDeviceRef.current.deviceId)
-      ) {
-        return;
+  // Effect to handle query cache changes and forward actions
+  useEffect(() => {
+    if (!isConnected || !socket) return;
+
+    const queryCache = queryClient.getQueryCache();
+    const querySubscription = queryCache.subscribe((event) => {
+      const currentSelectedDevice = selectedDeviceRef.current;
+
+      if (!isValidDevice(currentSelectedDevice)) {
+        return; // Don't forward actions if no valid device is selected
       }
 
-      // Process query cache events and forward relevant actions to devices
-      switch (event.type) {
-        case "updated":
-          switch (event.action.type as QueryActions) {
-            case "ACTION-REFETCH":
-            case "ACTION-INVALIDATE":
-            case "ACTION-TRIGGER-ERROR":
-            case "ACTION-RESTORE-ERROR":
-            case "ACTION-RESET":
-            case "ACTION-REMOVE":
-            case "ACTION-TRIGGER-LOADING":
-            case "ACTION-RESTORE-LOADING": {
-              console.log(
-                `${LOG_PREFIX} Forwarding query action: ${event.action.type} for query hash: ${event.query.queryHash} to device: ${selectedDeviceRef.current.deviceName}`
+      // Process query cache events
+      if (event.type === "updated") {
+        const actionType = event.action.type as QueryActions;
+        switch (actionType) {
+          // Actions to forward directly
+          case "ACTION-REFETCH":
+          case "ACTION-INVALIDATE":
+          case "ACTION-TRIGGER-ERROR":
+          case "ACTION-RESTORE-ERROR":
+          case "ACTION-RESET":
+          case "ACTION-REMOVE":
+          case "ACTION-TRIGGER-LOADING":
+          case "ACTION-RESTORE-LOADING":
+            sendQueryAction(
+              socket,
+              currentSelectedDevice,
+              actionType,
+              event.query
+            );
+            break;
+
+          // Handle manual data updates specifically
+          case "success": {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error This 'manual' property might exist based on usage pattern
+            if (event.action.manual) {
+              sendQueryAction(
+                socket,
+                currentSelectedDevice,
+                "ACTION-DATA-UPDATE",
+                event.query
               );
-
-              // Create action message to send to the target device
-              const queryActionMessage: QueryActionMessage = {
-                action: event.action.type as QueryActions,
-                device: selectedDeviceRef.current,
-                queryHash: event.query.queryHash,
-                queryKey: event.query.queryKey,
-                data: event.query.state.data,
-              };
-
-              // Send the action to the server for routing to the target device
-              socket.emit("query-action", queryActionMessage);
-              break;
             }
-            case "success": {
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-expect-error This does exist
-              if (event.action.manual) {
-                console.log(
-                  `${LOG_PREFIX} Manual data update detected for query hash: ${event.query.queryHash} to device: ${selectedDeviceRef.current.deviceName}`
-                );
-
-                // Create action message to update data on the target device
-                const queryActionMessage: QueryActionMessage = {
-                  action: "ACTION-DATA-UPDATE",
-                  device: selectedDeviceRef.current,
-                  queryHash: event.query.queryHash,
-                  queryKey: event.query.queryKey,
-                  data: event.query.state.data,
-                };
-
-                // Send the data update to the server for routing to the target device
-                socket.emit("query-action", queryActionMessage);
-              }
-              break;
-            }
+            break;
           }
+        }
       }
     });
 
-    // Cleanup all subscriptions
     return () => {
-      console.log(`${LOG_PREFIX} Cleaning up event listeners`);
-      socket.off("query-sync");
-      onlineManagerUnsubscribe();
+      console.log(`${LOG_PREFIX} Cleaning up query cache listener`);
       querySubscription();
     };
-  }, [queryClient, socket]);
+  }, [isConnected, socket, queryClient]); // Depends on connection, socket, and queryClient
 
-  return { isConnected: !!socket };
-}
-
-/**
- * Hydrates the query client with state received from a device
- * Ensures queries remain stale to prevent automatic refetching
- */
-function hydrateState(queryClient: QueryClient, message: SyncMessage) {
-  console.log(
-    `[DASHBOARD] Hydrating QueryClient with state from: ${message.deviceName}`
-  );
-
-  Hydrate(queryClient, message.state, {
-    defaultOptions: {
-      queries: {
-        staleTime: Infinity, // Prevent automatic refetching
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-    },
-  });
+  // Return connection status (or potentially other state if needed later)
+  return { isConnected };
 }
