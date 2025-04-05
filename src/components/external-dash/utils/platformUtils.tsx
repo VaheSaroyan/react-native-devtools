@@ -132,8 +132,6 @@ export const PlatformIcon: React.FC<{
   return <IconComponent className={finalClassName} {...rest} />;
 };
 
-// --- 4. Refactored Helper Functions (DRY) ---
-
 /**
  * Gets the combined background and text color CSS classes for a platform.
  */
