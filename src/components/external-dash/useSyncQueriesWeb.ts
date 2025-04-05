@@ -153,12 +153,6 @@ export function useSyncQueriesWeb({ targetDevice }: Props) {
         `${LOG_PREFIX} Received query sync from: ${message.deviceName} (${message.type})`
       );
       if (message.type === "dehydrated-state") {
-        console.log(
-          `${LOG_PREFIX} Selected device ID: ${selectedDeviceRef.current.deviceId}`
-        );
-        console.log(
-          `${LOG_PREFIX} Message persistent device ID: ${message.persistentDeviceId}`
-        );
         // Only process data if it's from the selected device or if "all" is selected
         if (
           selectedDeviceRef.current.deviceId === "All" ||
@@ -168,19 +162,21 @@ export function useSyncQueriesWeb({ targetDevice }: Props) {
             `${LOG_PREFIX} Processing sync from: ${message.deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
           );
 
-          // Sync online manager state with device
-          console.log(
-            `${LOG_PREFIX} Setting online status to match device: ${
-              message.isOnlineManagerOnline ? "ONLINE" : "OFFLINE"
-            }`
-          );
-          onlineManager.setOnline(message.isOnlineManagerOnline);
+          // Sync online manager state with device if it has changed
+          if (message.isOnlineManagerOnline !== onlineManager.isOnline()) {
+            console.log(
+              `${LOG_PREFIX} Setting online status to match device: ${
+                message.isOnlineManagerOnline ? "ONLINE" : "OFFLINE"
+              }`
+            );
+            onlineManager.setOnline(message.isOnlineManagerOnline);
+          }
 
           // Hydrate the query client with received state
           hydrateState(queryClient, message);
         } else {
           console.log(
-            `${LOG_PREFIX} Ignoring sync from: ${message.deviceName} - not from selected device`
+            `${LOG_PREFIX} Ignoring sync from: ${message.deviceName} # ${message.persistentDeviceId} - not from selected device ID # (${selectedDeviceRef.current.deviceId})`
           );
         }
       }
