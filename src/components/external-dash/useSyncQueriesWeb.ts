@@ -160,19 +160,19 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
   const queryClient = useQueryClient();
   const selectedDeviceRef = useRef(targetDevice);
 
-  // Function that returns device from all devies based off deviceId
-  function getDeviceFromDeviceId(deviceId: string) {
-    return allDevices.find((device) => device.deviceId === deviceId);
-  }
   // --- Callbacks ---
 
   // Callback to handle incoming query sync messages
   const handleQuerySync = useCallback(
     (message: SyncMessage) => {
+      // Function that returns device from all devices based off deviceId
+      function getDeviceFromDeviceId(deviceId: string) {
+        return allDevices.find((device) => device.deviceId === deviceId);
+      }
+
       const deviceName = getDeviceFromDeviceId(
         message.persistentDeviceId
       )?.deviceName;
-
       console.log(
         `${LOG_PREFIX} Received query sync from: ${deviceName} (${message.type})`
       );
@@ -206,7 +206,7 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
         );
       }
     },
-    [queryClient] // Dependency on queryClient for hydrateState
+    [queryClient, allDevices]
   );
 
   // --- Effects ---
