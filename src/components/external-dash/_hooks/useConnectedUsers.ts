@@ -1,13 +1,10 @@
 import io, { Socket } from "socket.io-client";
 import { useEffect, useState } from "react";
 import { User } from "../types/User";
-import { ClientQuery } from "../types/ClientQuery";
-interface Props {
-  query: ClientQuery;
-  socketURL: string;
-}
+
 let socket = null as Socket | null; // Module-level variable to store the socket instance
-export default function useConnectedUsers({ query, socketURL }: Props) {
+export default function useConnectedUsers() {
+  const socketURL = "http://localhost:42831";
   const [isDashboardConnected, setIsDashboardConnected] = useState(
     !!socket?.connected
   );
@@ -17,7 +14,6 @@ export default function useConnectedUsers({ query, socketURL }: Props) {
   if (!socket) {
     // Include the "Dashboard" identifier explicitly in query params
     const enhancedQuery = {
-      ...query,
       deviceName: "Dashboard",
     };
 

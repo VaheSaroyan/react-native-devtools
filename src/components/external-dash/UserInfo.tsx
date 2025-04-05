@@ -67,7 +67,11 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
   const isConnected =
     userData.isConnected !== undefined ? userData.isConnected : true;
   const connectionStatusText = isConnected ? "Connected" : "Disconnected";
-
+  console.log("userData", userData);
+  // Parse extraDeviceInfo if it exists
+  const extraDeviceInfo = userData.extraDeviceInfo
+    ? JSON.parse(userData.extraDeviceInfo)
+    : {};
   return (
     <div className="relative isolate w-full mb-4">
       <div
@@ -172,24 +176,21 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
               />
             )}
 
-            {userData?.extraDeviceInfo &&
-            Object.keys(userData.extraDeviceInfo).length > 0 ? (
+            {Object.keys(extraDeviceInfo).length > 0 ? (
               <>
                 <div className="col-span-2 border-t border-gray-700 my-3" />
                 <div className="col-span-2 text-gray-400 font-medium mb-2">
                   Device Information:
                 </div>
-                {Object.entries(userData.extraDeviceInfo).map(
-                  ([key, value]) => (
-                    <InfoRow
-                      key={key}
-                      label={key}
-                      value={value}
-                      className="text-gray-200"
-                      labelClassName="text-gray-400"
-                    />
-                  )
-                )}
+                {Object.entries(extraDeviceInfo).map(([key, value]) => (
+                  <InfoRow
+                    key={key}
+                    label={key}
+                    value={value as string}
+                    className="text-gray-200"
+                    labelClassName="text-gray-400"
+                  />
+                ))}
               </>
             ) : (
               <>

@@ -11,13 +11,8 @@ export default function Main() {
     isConnected: false,
     id: "Please select a user",
   });
-  useSyncQueriesWeb({ targetDevice });
-  const { allDevices, isDashboardConnected } = useConnectedUsers({
-    query: {
-      deviceName: "Dashboard",
-    },
-    socketURL: "http://localhost:42831",
-  });
+  const { allDevices, isDashboardConnected } = useConnectedUsers();
+  useSyncQueriesWeb({ targetDevice, allDevices });
 
   return (
     <Dash

@@ -79,6 +79,7 @@ function checkVersion(queryClient: QueryClient) {
 interface useSyncQueriesExternalProps {
   queryClient: QueryClient;
   deviceName: string;
+  extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
   socketURL: string;
 }
 
@@ -95,6 +96,7 @@ export function useSyncQueriesExternal({
   queryClient,
   deviceName,
   socketURL,
+  extraDeviceInfo,
 }: useSyncQueriesExternalProps) {
   // ==========================================================
   // Persistent device ID - used to persist device identity
@@ -110,10 +112,11 @@ export function useSyncQueriesExternal({
   // Socket connection - Handles connection to the socket server and
   // event listeners for the socket server
   // ==========================================================
-  const { connect, disconnect, isConnected, socket, users } = useMySocket({
+  const { connect, disconnect, isConnected, socket } = useMySocket({
     deviceName,
     socketURL,
     persistentDeviceId,
+    extraDeviceInfo,
   });
 
   // Use a ref to track previous connection state to avoid duplicate logs
@@ -154,7 +157,6 @@ export function useSyncQueriesExternal({
       const syncMessage: SyncMessage = {
         type: "dehydrated-state",
         state: dehydratedState,
-        deviceName,
         isOnlineManagerOnline: onlineManager.isOnline(),
         persistentDeviceId,
       };
@@ -383,7 +385,6 @@ export function useSyncQueriesExternal({
       const syncMessage: SyncMessage = {
         type: "dehydrated-state",
         state: dehydratedState,
-        deviceName,
         isOnlineManagerOnline: onlineManager.isOnline(),
         persistentDeviceId,
       };
@@ -421,5 +422,5 @@ export function useSyncQueriesExternal({
     fetchDeviceId();
   }, [logPrefix]);
 
-  return { connect, disconnect, isConnected, socket, users };
+  return { connect, disconnect, isConnected, socket };
 }

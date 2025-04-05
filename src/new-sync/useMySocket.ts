@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { io as socketIO, Socket } from "socket.io-client";
 
-import { User } from "./User";
 import { getPlatform, getPlatformSpecificURL } from "./platformUtils";
 
 interface Props {
   deviceName: string; // Unique name to identify the device
   socketURL: string; // Base URL of the socket server (may be modified based on platform)
   persistentDeviceId: string | null; // Persistent device ID
+  extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
 }
 
 /**
@@ -31,11 +31,11 @@ export function useMySocket({
   deviceName,
   socketURL,
   persistentDeviceId,
+  extraDeviceInfo,
 }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
   const initialized = useRef(false);
 
   // For logging clarity
@@ -53,14 +53,6 @@ export function useMySocket({
   const onDisconnect = (reason: string) => {
     console.log(`${logPrefix} Socket disconnected. Reason: ${reason}`);
     setIsConnected(false);
-  };
-
-  const onUsersUpdate = (newUsers: User[]) => {
-    console.log(
-      `${logPrefix} Users updated:`,
-      newUsers.map((u) => u.deviceName).join(", ")
-    );
-    setUsers(newUsers);
   };
 
   const onConnectError = (error: Error) => {
@@ -105,6 +97,7 @@ export function useMySocket({
             deviceName,
             deviceId: persistentDeviceId,
             platform: currentPlatform,
+            extraDeviceInfo: JSON.stringify(extraDeviceInfo),
           },
           reconnection: false,
           transports: ["websocket"], // Prefer websocket transport for React Native
@@ -236,6 +229,5 @@ export function useMySocket({
     connect,
     disconnect,
     isConnected,
-    users,
   };
 }

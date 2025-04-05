@@ -19,9 +19,7 @@ export interface SimpleDehydratedState {
 export interface SyncMessage {
   type: "dehydrated-state";
   state: DehydratedState;
-  extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
   isOnlineManagerOnline: boolean;
-  deviceName: string;
   persistentDeviceId: string;
 }
 

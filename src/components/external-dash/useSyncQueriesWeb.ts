@@ -56,10 +56,6 @@ export interface OnlineManagerMessage {
   targetDevice: User; // Device ID to target ('All' || device)
 }
 
-interface Props {
-  targetDevice: User; // Currently selected device persistent ID
-}
-
 // --- Constants ---
 const LOG_PREFIX = "[DASHBOARD]";
 const INVALID_DEVICE_IDS = ["No devices available", "Please select a user"];
@@ -72,9 +68,13 @@ const isValidDevice = (device: User | null): boolean => {
 };
 
 /** Hydrates the query client with state received from a device */
-const hydrateState = (queryClient: QueryClient, message: SyncMessage) => {
+const hydrateState = (
+  queryClient: QueryClient,
+  message: SyncMessage,
+  deviceName: string
+) => {
   console.log(
-    `${LOG_PREFIX} Hydrating QueryClient with state from: ${message.deviceName}`
+    `${LOG_PREFIX} Hydrating QueryClient with state from: ${deviceName}`
   );
   Hydrate(queryClient, message.state, {
     defaultOptions: {
@@ -138,6 +138,10 @@ const sendOnlineStatus = (
   );
 };
 
+interface Props {
+  targetDevice: User; // Currently selected device persistent ID
+  allDevices: User[];
+}
 /**
  * Hook used by the dashboard to sync with and control device queries
  *
@@ -147,25 +151,28 @@ const sendOnlineStatus = (
  * - Processing query state updates from devices
  * - Tracking connected devices
  */
-export function useSyncQueriesWeb({ targetDevice }: Props) {
-  const { socket } = useConnectedUsers({
-    query: {
-      deviceName: "Dashboard",
-    },
-    socketURL: "http://localhost:42831",
-  });
+export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
+  const { socket } = useConnectedUsers();
   const isConnected = !!socket && socket.connected;
 
   const queryClient = useQueryClient();
   const selectedDeviceRef = useRef(targetDevice);
 
+  // Function that returns device from all devies based off deviceId
+  function getDeviceFromDeviceId(deviceId: string) {
+    return allDevices.find((device) => device.deviceId === deviceId);
+  }
   // --- Callbacks ---
 
   // Callback to handle incoming query sync messages
   const handleQuerySync = useCallback(
     (message: SyncMessage) => {
+      const deviceName = getDeviceFromDeviceId(
+        message.persistentDeviceId
+      )?.deviceName;
+
       console.log(
-        `${LOG_PREFIX} Received query sync from: ${message.deviceName} (${message.type})`
+        `${LOG_PREFIX} Received query sync from: ${deviceName} (${message.type})`
       );
 
       if (message.type !== "dehydrated-state") return;
@@ -177,7 +184,7 @@ export function useSyncQueriesWeb({ targetDevice }: Props) {
 
       if (isFromSelectedDevice) {
         console.log(
-          `${LOG_PREFIX} Processing sync from: ${message.deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
+          `${LOG_PREFIX} Processing sync from: ${deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
         );
 
         // Sync online manager state if needed
@@ -190,10 +197,10 @@ export function useSyncQueriesWeb({ targetDevice }: Props) {
           onlineManager.setOnline(message.isOnlineManagerOnline);
         }
 
-        hydrateState(queryClient, message);
+        hydrateState(queryClient, message, deviceName);
       } else {
         console.log(
-          `${LOG_PREFIX} Ignoring sync from: ${message.deviceName} # ${message.persistentDeviceId} - not selected device ID # (${currentSelectedDevice.deviceId})`
+          `${LOG_PREFIX} Ignoring sync from: ${deviceName} # ${message.persistentDeviceId} - not selected device ID # (${currentSelectedDevice.deviceId})`
         );
       }
     },

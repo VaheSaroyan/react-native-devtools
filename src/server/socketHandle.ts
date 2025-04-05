@@ -107,7 +107,13 @@ export default function socketHandle({ io }: Props) {
   // ==========================================================
   // Add a new user to the connected users list with unique naming
   // ==========================================================
-  function addNewUser({ id, deviceName, deviceId, platform }: User) {
+  function addNewUser({
+    id,
+    deviceName,
+    deviceId,
+    platform,
+    extraDeviceInfo,
+  }: User) {
     // Check if we're reconnecting an existing device by deviceId
     if (deviceId) {
       // Store the mapping for future reference
@@ -124,18 +130,21 @@ export default function socketHandle({ io }: Props) {
       const existingDeviceIndex = allDevices.findIndex(
         (device) => device.deviceId === deviceId
       );
-
+      // If the user exists, update the user with the new socket id and potentially new info
       if (existingUserIndex !== -1) {
         console.log(
           `${LOG_PREFIX} Reconnecting existing device - ID: ${id}, Name: ${deviceName}, DeviceId: ${deviceId}, Platform: ${
             platform || "Unknown"
-          }`
+          }, ExtraDeviceInfo: ${extraDeviceInfo}`
         );
 
-        // Update the existing user with the new socket id and potentially new platform info
+        // Update the existing user with the new socket id and potentially new info
         users[existingUserIndex].id = id;
         if (platform) {
           users[existingUserIndex].platform = platform;
+        }
+        if (extraDeviceInfo) {
+          users[existingUserIndex].extraDeviceInfo = extraDeviceInfo;
         }
 
         // Add isConnected status
@@ -148,6 +157,9 @@ export default function socketHandle({ io }: Props) {
           if (platform) {
             allDevices[existingDeviceIndex].platform = platform;
           }
+          if (extraDeviceInfo) {
+            allDevices[existingDeviceIndex].extraDeviceInfo = extraDeviceInfo;
+          }
         } else if (deviceName !== "Dashboard") {
           // Add to history if not yet present and not a dashboard
           allDevices.push({
@@ -156,6 +168,7 @@ export default function socketHandle({ io }: Props) {
             deviceId,
             platform,
             isConnected: true,
+            extraDeviceInfo,
           });
         }
 
@@ -204,6 +217,7 @@ export default function socketHandle({ io }: Props) {
         deviceId: deviceId,
         platform: platform,
         isConnected: true,
+        extraDeviceInfo: extraDeviceInfo,
       };
 
       users.push(newUser);
@@ -216,10 +230,10 @@ export default function socketHandle({ io }: Props) {
         );
 
         if (existingDeviceIndex !== -1) {
-          // Update existing record
+          // Update existing record with all fields including extraDeviceInfo
           allDevices[existingDeviceIndex] = { ...newUser };
         } else {
-          // Add new device to history
+          // Add new device to history with all fields
           allDevices.push({ ...newUser });
         }
       }
@@ -248,7 +262,10 @@ export default function socketHandle({ io }: Props) {
       );
     }
   }
-
+  // Function that returns device from all devies based off deviceId
+  function getDeviceFromDeviceId(deviceId: string) {
+    return allDevices.find((device) => device.deviceId === deviceId);
+  }
   // ==========================================================
   // Handle generic user messages (for debugging purposes)
   // ==========================================================
@@ -261,6 +278,7 @@ export default function socketHandle({ io }: Props) {
   // Forward query sync messages only to dashboard clients
   // ==========================================================
   function forwardQuerySyncToDashboards(message: SyncMessage) {
+    const device = getDeviceFromDeviceId(message.persistentDeviceId);
     if (dashboardClients.length === 0) {
       console.log(
         `${LOG_PREFIX} No dashboard clients connected to forward query sync to`
@@ -269,7 +287,7 @@ export default function socketHandle({ io }: Props) {
     }
 
     console.log(
-      `${LOG_PREFIX} Forwarding query sync from ${message.deviceName} to ${dashboardClients.length} dashboard(s)`
+      `${LOG_PREFIX} Forwarding query sync from ${device?.deviceName} to ${dashboardClients.length} dashboard(s)`
     );
 
     // First try to send directly to each dashboard client (more reliable)
@@ -323,7 +341,7 @@ export default function socketHandle({ io }: Props) {
 
     // Also log detailed message information for debugging
     console.log(`${LOG_PREFIX} Message details:`, {
-      deviceName: message.deviceName,
+      deviceName: device?.deviceName,
       type: message.type,
       persistentDeviceId: message.persistentDeviceId,
       queriesCount: message.state.queries.length,
@@ -387,18 +405,19 @@ export default function socketHandle({ io }: Props) {
   // ==========================================================
   io.on("connection", (socket: Socket) => {
     // Get the query parameters from the handshake
-    const { deviceName, deviceId, platform } = socket.handshake.query as {
+    const { deviceName, deviceId, platform, extraDeviceInfo } = socket.handshake
+      .query as {
       deviceName: string | undefined;
       deviceId: string | undefined;
       platform: string | undefined;
+      extraDeviceInfo: string | undefined;
     };
-
     console.log(
       `${LOG_PREFIX} New connection - ID: ${socket.id}, Name: ${
         deviceName || "Unknown Device"
       }${deviceId ? `, DeviceId: ${deviceId}` : ""}${
         platform ? `, Platform: ${platform}` : ""
-      }`
+      }${extraDeviceInfo ? `, ExtraDeviceInfo: ${extraDeviceInfo}` : ""}`
     );
 
     // ==========================================================
@@ -409,6 +428,7 @@ export default function socketHandle({ io }: Props) {
       deviceName: deviceName || "Unknown Device Name",
       deviceId: deviceId,
       platform: platform,
+      extraDeviceInfo: extraDeviceInfo,
     });
 
     // ==========================================================
@@ -429,30 +449,12 @@ export default function socketHandle({ io }: Props) {
     });
 
     // ==========================================================
-    // Listening for a message from the dashboard to a specific device
-    // ==========================================================
-    socket.on(
-      "sendToSpecificClient",
-      ({
-        targetClientId,
-        message,
-      }: {
-        targetClientId: string;
-        message: string;
-      }) => {
-        console.log(
-          `${LOG_PREFIX} Dashboard sending to client ${targetClientId}: ${message}`
-        );
-        io.to(targetClientId).emit("message", message);
-      }
-    );
-
-    // ==========================================================
     // Listen for query-sync messages from devices and forward only to dashboard clients
     // ==========================================================
     socket.on("query-sync", (message: SyncMessage) => {
+      const device = getDeviceFromDeviceId(message.persistentDeviceId);
       console.log(
-        `${LOG_PREFIX} Query sync received from: ${message.deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
+        `${LOG_PREFIX} Query sync received from: ${device?.deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
       );
       // Only forward to dashboard clients, not back to devices
       forwardQuerySyncToDashboards(message);
