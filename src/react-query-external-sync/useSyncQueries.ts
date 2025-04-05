@@ -6,6 +6,7 @@ import { Dehydrate } from "./hydration";
 import { SyncMessage } from "./types";
 import { useMySocket } from "./useMySocket";
 import { getOrCreateDeviceId } from "./getOrCreateDeviceId";
+import { PlatformOS } from "./platformUtils";
 
 /**
  * Query actions that can be performed on a query.
@@ -89,6 +90,7 @@ interface useSyncQueriesExternalProps {
   deviceName: string;
   extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
   socketURL: string;
+  platform: PlatformOS; // Required platform
 }
 
 /**
@@ -105,6 +107,7 @@ export function useSyncQueriesExternal({
   deviceName,
   socketURL,
   extraDeviceInfo,
+  platform,
 }: useSyncQueriesExternalProps) {
   // ==========================================================
   // Persistent device ID - used to persist device identity
@@ -125,6 +128,7 @@ export function useSyncQueriesExternal({
     socketURL,
     persistentDeviceId,
     extraDeviceInfo,
+    platform,
   });
 
   // Use a ref to track previous connection state to avoid duplicate logs

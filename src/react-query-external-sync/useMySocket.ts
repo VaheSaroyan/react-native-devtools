@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { io as socketIO, Socket } from "socket.io-client";
 
-import { getPlatform, getPlatformSpecificURL } from "./platformUtils";
+import { getPlatformSpecificURL, PlatformOS } from "./platformUtils";
 
 interface Props {
   deviceName: string; // Unique name to identify the device
   socketURL: string; // Base URL of the socket server (may be modified based on platform)
   persistentDeviceId: string | null; // Persistent device ID
   extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
+  platform: PlatformOS; // Platform identifier
 }
 
 /**
@@ -32,6 +33,7 @@ export function useMySocket({
   socketURL,
   persistentDeviceId,
   extraDeviceInfo,
+  platform,
 }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -40,9 +42,6 @@ export function useMySocket({
 
   // For logging clarity
   const logPrefix = `[${deviceName}]`;
-
-  // Get the current platform
-  const { name: currentPlatform } = getPlatform();
 
   // Define event handlers at function root level to satisfy linter
   const onConnect = () => {
@@ -78,11 +77,11 @@ export function useMySocket({
     initialized.current = true;
 
     // Get the platform-specific URL
-    const platformUrl = getPlatformSpecificURL(socketURL);
+    const platformUrl = getPlatformSpecificURL(socketURL, platform);
     currentSocketURL = platformUrl;
 
     console.log(
-      `${logPrefix} Platform: ${currentPlatform}, using URL: ${platformUrl}`
+      `${logPrefix} Platform: ${platform}, using URL: ${platformUrl}`
     );
 
     try {
@@ -96,7 +95,7 @@ export function useMySocket({
           query: {
             deviceName,
             deviceId: persistentDeviceId,
-            platform: currentPlatform,
+            platform,
             extraDeviceInfo: JSON.stringify(extraDeviceInfo),
           },
           reconnection: false,
@@ -140,7 +139,14 @@ export function useMySocket({
     } catch (error) {
       console.error(`${logPrefix} Failed to initialize socket:`, error);
     }
-  }, [persistentDeviceId]);
+  }, [
+    persistentDeviceId,
+    platform,
+    deviceName,
+    socketURL,
+    extraDeviceInfo,
+    logPrefix,
+  ]);
 
   // Update the socket query parameters when deviceName changes
   useEffect(() => {
@@ -154,15 +160,15 @@ export function useMySocket({
         ...socketRef.current.io.opts.query,
         deviceName,
         deviceId: persistentDeviceId,
-        platform: currentPlatform,
+        platform,
       };
     }
-  }, [deviceName, logPrefix, persistentDeviceId, currentPlatform]);
+  }, [deviceName, logPrefix, persistentDeviceId, platform]);
 
   // Update the socket URL when socketURL changes
   useEffect(() => {
     // Get platform-specific URL for the new socketURL
-    const platformUrl = getPlatformSpecificURL(socketURL);
+    const platformUrl = getPlatformSpecificURL(socketURL, platform);
 
     // Compare with last known URL to avoid direct property access
     if (
@@ -187,7 +193,7 @@ export function useMySocket({
           query: {
             deviceName,
             deviceId: persistentDeviceId,
-            platform: currentPlatform,
+            platform,
           },
           reconnection: false,
           transports: ["websocket"], // Prefer websocket transport for React Native
@@ -202,7 +208,7 @@ export function useMySocket({
         );
       }
     }
-  }, [socketURL, deviceName, logPrefix, persistentDeviceId, currentPlatform]);
+  }, [socketURL, deviceName, logPrefix, persistentDeviceId, platform]);
 
   /**
    * Manually connect to the socket server
