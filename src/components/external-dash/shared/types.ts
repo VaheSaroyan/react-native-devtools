@@ -9,7 +9,7 @@ import {
   QueryState,
   MutationKey,
 } from "@tanstack/react-query";
-import { DeviceInfo } from "../types/User";
+
 // Define a simplified version of DehydratedState that both versions can work with
 export interface SimpleDehydratedState {
   mutations: unknown[];
@@ -19,7 +19,7 @@ export interface SimpleDehydratedState {
 export interface SyncMessage {
   type: "dehydrated-state";
   state: DehydratedState;
-  Device?: DeviceInfo; //(Expo only)
+  extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
   isOnlineManagerOnline: boolean;
   deviceName: string;
   persistentDeviceId: string;
