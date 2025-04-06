@@ -90,3 +90,7 @@ out/
 
 # Yalc
 .yalc/.env
+
+# Environment variables
+.env.local
+.env.*

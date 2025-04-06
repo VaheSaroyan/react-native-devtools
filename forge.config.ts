@@ -1,3 +1,16 @@
+import { config as dotenvConfig } from "dotenv";
+import * as path from "path";
+
+// Load .env file from the project root
+dotenvConfig({ path: path.resolve(process.cwd(), ".env") });
+
+// Debug logging to verify environment variables
+console.log("Environment variables loaded:", {
+  APPLE_ID: process.env.APPLE_ID,
+  TEAM_ID: process.env.APPLE_TEAM_ID,
+  DEBUG: process.env.DEBUG,
+});
+
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import { VitePlugin } from "@electron-forge/plugin-vite";
@@ -12,13 +25,15 @@ const config: ForgeConfig = {
     appBundleId: "com.lovesworking.rn-dev-tools",
     appCategoryType: "public.app-category.developer-tools",
     executableName: "React Native DevTools",
-    osxSign: {}, // object must exist even if empty
+    osxSign: {
+      identity: "6EC9AE0A608BB7CBBA6BCC7936689773E76D63F0",
+    },
     // The osxSign config comes with defaults that work out of the box in most cases, so we recommend you start with an empty configuration object.
     // For a full list of configuration options, see  https://js.electronforge.io/modules/_electron_forge_shared_types.InternalOptions.html#OsxSignOptions
     osxNotarize: {
-      appleId: process.env.APPLE_ID,
-      appleIdPassword: process.env.APPLE_PASSWORD,
-      teamId: process.env.APPLE_TEAM_ID,
+      appleId: process.env.APPLE_ID!,
+      appleIdPassword: process.env.APPLE_PASSWORD!,
+      teamId: process.env.APPLE_TEAM_ID!,
     },
   },
   rebuildConfig: {},
