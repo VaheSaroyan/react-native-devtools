@@ -149,6 +149,39 @@ export const LogConsole: React.FC<LogConsoleProps> = ({
     }
   })();
 
+  const [isDeviceDropdownOpen, setIsDeviceDropdownOpen] = useState(false);
+  const [isLevelDropdownOpen, setIsLevelDropdownOpen] = useState(false);
+  const deviceDropdownRef = useRef<HTMLDivElement>(null);
+  const levelDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        deviceDropdownRef.current &&
+        !deviceDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDeviceDropdownOpen(false);
+      }
+      if (
+        levelDropdownRef.current &&
+        !levelDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsLevelDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const levelOptions = [
+    { value: "all", label: "All" },
+    { value: "info", label: "Info" },
+    { value: "warn", label: "Warn" },
+    { value: "error", label: "Error" },
+    { value: "debug", label: "Debug" },
+  ];
+
   return (
     <>
       {/* Header */}
@@ -174,41 +207,132 @@ export const LogConsole: React.FC<LogConsoleProps> = ({
 
         <div className="flex items-center gap-4">
           {/* Device Filter */}
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs relative">
             <span className="text-gray-400">Device:</span>
-            <select
-              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 min-w-[8rem]"
-              value={deviceFilter}
-              onChange={(e) => setDeviceFilter(e.target.value)}
-            >
-              {deviceOptions.map((option) => (
-                <option
-                  key={option.value}
-                  value={option.value}
-                  className={option.isOffline ? "text-gray-500" : ""}
+            <div className="relative" ref={deviceDropdownRef}>
+              <button
+                onClick={() => setIsDeviceDropdownOpen(!isDeviceDropdownOpen)}
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 min-w-[8rem] flex items-center justify-between gap-2 select-none"
+              >
+                <div className="flex items-center gap-2">
+                  <span>
+                    {
+                      deviceOptions.find((opt) => opt.value === deviceFilter)
+                        ?.label
+                    }
+                  </span>
+                  {deviceFilter !== "all" && (
+                    <span className="text-gray-300">
+                      <PlatformIcon
+                        platform={
+                          allDevices.find((d) => d.deviceId === deviceFilter)
+                            ?.platform || ""
+                        }
+                      />
+                    </span>
+                  )}
+                </div>
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
                 >
-                  {option.label}
-                  {option.platform && ` (${option.platform})`}
-                  {option.isOffline ? " (Offline)" : ""}
-                </option>
-              ))}
-            </select>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {isDeviceDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-gray-800 border border-gray-700 rounded-md shadow-lg z-50">
+                  {deviceOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setDeviceFilter(option.value);
+                        setIsDeviceDropdownOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 text-left flex items-center justify-between gap-2 hover:bg-gray-700/50 ${
+                        deviceFilter === option.value ? "bg-gray-700/30" : ""
+                      } ${
+                        option.isOffline ? "text-gray-500" : "text-gray-300"
+                      } select-none`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {option.label}
+                        {option.platform && (
+                          <span
+                            className={`${
+                              option.isOffline
+                                ? "text-gray-500"
+                                : "text-gray-300"
+                            }`}
+                          >
+                            <PlatformIcon platform={option.platform} />
+                          </span>
+                        )}
+                      </div>
+                      {option.value !== "all" && (
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            option.isOffline ? "bg-red-500" : "bg-green-500"
+                          }`}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Log Level Filter */}
           <div className="flex items-center gap-2 text-xs">
             <span className="text-gray-400">Level:</span>
-            <select
-              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as LogLevel | "all")}
-            >
-              <option value="all">All</option>
-              <option value="info">Info</option>
-              <option value="warn">Warn</option>
-              <option value="error">Error</option>
-              <option value="debug">Debug</option>
-            </select>
+            <div className="relative" ref={levelDropdownRef}>
+              <button
+                onClick={() => setIsLevelDropdownOpen(!isLevelDropdownOpen)}
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 min-w-[6rem] flex items-center justify-between gap-2 select-none"
+              >
+                <span>
+                  {levelOptions.find((opt) => opt.value === filter)?.label}
+                </span>
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {isLevelDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-gray-800 border border-gray-700 rounded-md shadow-lg z-50">
+                  {levelOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setFilter(option.value as LogLevel | "all");
+                        setIsLevelDropdownOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 text-left hover:bg-gray-700/50 ${
+                        filter === option.value ? "bg-gray-700/30" : ""
+                      } text-gray-300 select-none`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Auto-scroll toggle */}
