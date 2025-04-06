@@ -83,6 +83,7 @@ export const Dash: React.FC<DashProps> = ({
         }
         return device.isConnected;
       });
+
   // Find the target device
   useEffect(() => {
     const foundDevice = filteredDevices?.find((device) => {
@@ -94,143 +95,223 @@ export const Dash: React.FC<DashProps> = ({
   return (
     <div>
       <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
-        <header className="w-full px-4 py-3 border-b border-gray-700 flex justify-between items-center flex-shrink-0 backdrop-blur-sm bg-gray-900/80 sticky top-0 z-10 shadow-md">
+        <header className="w-full px-3 py-2 border-b border-gray-700/50 flex justify-between items-center flex-shrink-0 backdrop-blur-md bg-gradient-to-b from-gray-900/95 to-gray-900/90 sticky top-0 z-10 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-800/60 border border-gray-700/50 shadow-sm">
-              <div
-                className={`w-2.5 h-2.5 rounded-full ${
-                  isDashboardConnected ? "bg-green-400" : "bg-red-400"
-                } shadow-lg shadow-${
-                  isDashboardConnected ? "green" : "red"
-                }-500/20`}
-              />
-              <span className="text-sm font-mono font-medium">
+            {/* Connection Status */}
+            <div
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-md bg-opacity-60 border shadow-sm transition-colors duration-200 ${
+                isDashboardConnected
+                  ? "bg-green-500/10 border-green-500/20"
+                  : "bg-red-500/10 border-red-500/20"
+              }`}
+            >
+              <div className="relative">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    isDashboardConnected ? "bg-green-400" : "bg-red-400"
+                  }`}
+                >
+                  <div
+                    className={`absolute inset-0 rounded-full ${
+                      isDashboardConnected ? "bg-green-400" : "bg-red-400"
+                    } animate-ping opacity-75`}
+                  ></div>
+                </div>
+              </div>
+              <span
+                className={`text-xs font-medium ${
+                  isDashboardConnected ? "text-green-300" : "text-red-300"
+                }`}
+              >
                 {isDashboardConnected ? "Connected" : "Disconnected"}
               </span>
             </div>
+
             {filteredDevices.length === 0 && (
-              <span className="text-sm font-mono text-gray-400 px-3 py-1.5 bg-gray-800/60 rounded-md border border-gray-700/30 shadow-sm">
-                No devices available
-              </span>
+              <div className="flex items-center px-2.5 py-1.5 bg-gray-800/40 rounded-md border border-gray-700/30">
+                <span className="text-xs font-medium text-gray-400">
+                  No devices available
+                </span>
+              </div>
             )}
           </div>
-          {/* Device selection and offline devices toggle */}
-          <div className="flex items-center gap-4">
+
+          {/* Right Section */}
+          <div className="flex items-center gap-3">
+            {/* Offline Toggle */}
             <div className="flex items-center">
               <button
                 onClick={() => setShowOfflineDevices(!showOfflineDevices)}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-md transition-all duration-200"
+                className="group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-all duration-200 hover:bg-gray-800/40 border border-transparent hover:border-gray-700/50"
                 aria-pressed={showOfflineDevices}
                 role="switch"
               >
                 <div
-                  className={`w-10 h-5 rounded-full flex items-center ${
-                    showOfflineDevices ? "bg-blue-500/90" : "bg-gray-600/90"
-                  } transition-colors duration-200 shadow-inner`}
+                  className={`w-7 h-3.5 rounded-full flex items-center transition-all duration-200 ${
+                    showOfflineDevices ? "bg-blue-500/80" : "bg-gray-700"
+                  }`}
                 >
                   <div
-                    className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
-                      showOfflineDevices ? "translate-x-5" : "translate-x-1"
+                    className={`w-2.5 h-2.5 rounded-full bg-white shadow-sm transform transition-all duration-200 ${
+                      showOfflineDevices ? "translate-x-4" : "translate-x-0.5"
                     }`}
                   />
                 </div>
-                <span className="text-sm font-medium">
-                  Show offline devices
+                <span className="text-xs font-medium text-gray-400 group-hover:text-gray-300">
+                  Show Offline Devices
                 </span>
               </button>
             </div>
-            <DeviceSelection
-              selectedDevice={targetDevice}
-              setSelectedDevice={setTargetDevice}
-              allDevices={filteredDevices}
-            />
+
+            {/* Separator */}
+            <div className="h-4 w-px bg-gray-700/50"></div>
+
+            {/* Device Selection */}
+            <div className="flex-shrink-0">
+              <DeviceSelection
+                selectedDevice={targetDevice}
+                setSelectedDevice={setTargetDevice}
+                allDevices={filteredDevices}
+              />
+            </div>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4">
           <div className="px-2 max-w-3xl mx-auto">
             {/* Device count and stats */}
-            {filteredDevices.length > 0 && (
-              <div className="mb-3 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-lg transform transition-all duration-200 hover:shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-2.5 py-1 bg-gray-800/80 rounded-lg border border-gray-700/50">
-                      <div className="text-sm font-medium text-gray-200 flex items-center gap-2">
-                        <span className="text-blue-300 font-mono bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
+            {filteredDevices.length > 0 ? (
+              <>
+                <div className="mb-3 bg-gradient-to-r from-gray-800/95 to-gray-800/90 border border-gray-700/60 rounded-xl p-3 shadow-lg backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm flex items-center gap-2 px-2.5 py-1 bg-gray-900/50 rounded-lg border border-gray-700/50">
+                        <span className="text-blue-300 font-mono bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 text-xs">
                           {filteredDevices.length}
                         </span>
-                        <span className="text-gray-400">
+                        <span className="text-gray-300 font-medium">
                           {filteredDevices.length === 1 ? "device" : "devices"}
                         </span>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="flex items-center gap-2 px-2.5 py-1 bg-green-900/20 rounded-lg border border-green-900/30">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                        <span className="text-green-300 font-medium">
-                          {allDevices.filter((d) => d.isConnected).length}{" "}
-                          online
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 px-2.5 py-1 bg-red-900/20 rounded-lg border border-red-900/30">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                        <span className="text-red-300 font-medium">
-                          {allDevices.filter((d) => !d.isConnected).length}{" "}
-                          offline
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {targetDevice && (
-                    <div className="flex items-center gap-2.5 px-3 py-1.5 bg-gray-800/90 rounded-lg border border-gray-700/50 shadow-sm hover:border-gray-600/50 transition-colors duration-200">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            targetDevice.deviceId === "All"
-                              ? "bg-blue-500"
-                              : targetDevice.isConnected
-                              ? "bg-green-500"
-                              : "bg-red-500"
-                          }`}
-                        ></div>
-                        <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-                          Target
-                        </span>
-                      </div>
-                      <span className="text-sm text-gray-200 font-medium">
-                        {targetDevice.deviceId === "All"
-                          ? "All Devices"
-                          : targetDevice.deviceName}
-                      </span>
-                      {targetDevice.deviceId !== "All" &&
-                        targetDevice.platform && (
-                          <span
-                            className={`flex items-center ${getPlatformColor(
-                              targetDevice.platform
-                            )}`}
-                          >
-                            <PlatformIcon platform={targetDevice.platform} />
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-2 px-2.5 py-1 bg-green-900/20 rounded-lg border border-green-900/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                          <span className="text-green-300 font-medium">
+                            {allDevices.filter((d) => d.isConnected).length}{" "}
+                            online
                           </span>
-                        )}
+                        </div>
+                        <div className="flex items-center gap-2 px-2.5 py-1 bg-red-900/20 rounded-lg border border-red-900/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                          <span className="text-red-300 font-medium">
+                            {allDevices.filter((d) => !d.isConnected).length}{" "}
+                            offline
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  )}
+
+                    {targetDevice && (
+                      <div className="flex items-center gap-2.5 px-3 py-1.5 bg-gray-900/50 rounded-lg border border-gray-700/50 hover:border-gray-600/70 transition-all duration-200 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`flex items-center gap-2 ${
+                              targetDevice.deviceId === "All"
+                                ? "text-blue-300"
+                                : targetDevice.isConnected
+                                ? "text-green-300"
+                                : "text-red-300"
+                            }`}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
+                            <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                              Target
+                            </span>
+                          </div>
+                          <span className="text-sm font-medium text-gray-200">
+                            {targetDevice.deviceId === "All"
+                              ? "All Devices"
+                              : targetDevice.deviceName}
+                          </span>
+                        </div>
+                        {targetDevice.deviceId !== "All" &&
+                          targetDevice.platform && (
+                            <div
+                              className={`flex items-center ${getPlatformColor(
+                                targetDevice.platform
+                              )}`}
+                            >
+                              <PlatformIcon platform={targetDevice.platform} />
+                            </div>
+                          )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Device List */}
+                {filteredDevices.map((device) => (
+                  <UserInfo
+                    key={device.id}
+                    userData={device}
+                    isTargeted={
+                      targetDevice.deviceId === "All" ||
+                      targetDevice.deviceId === device.deviceId
+                    }
+                  />
+                ))}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center">
+                <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700/50 backdrop-blur-sm max-w-md">
+                  <svg
+                    className="w-12 h-12 text-gray-500 mx-auto mb-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z"
+                    />
+                  </svg>
+                  <h3 className="text-lg font-semibold text-gray-200 mb-2">
+                    No Devices Connected
+                  </h3>
+                  <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                    Please ensure this app is running and then start or restart
+                    your devices to establish a connection.
+                  </p>
+                  <div className="text-xs text-gray-500 bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
+                    <p className="font-medium mb-1">Troubleshooting steps:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-left">
+                      <li>Verify the app is running</li>
+                      <li>Restart your development devices</li>
+                      <li className="flex items-start gap-1 flex-wrap">
+                        <span>Please read the</span>
+                        <a
+                          href="https://github.com/LovesWorking/rn-better-dev-tools"
+                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                        >
+                          documentation
+                        </a>
+                        <span>or</span>
+                        <a
+                          href="https://github.com/LovesWorking/rn-better-dev-tools/issues"
+                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                        >
+                          create an issue
+                        </a>
+                        <span>for help</span>
+                      </li>
+                    </ol>
+                  </div>
                 </div>
               </div>
             )}
-
-            {/* Always show all devices */}
-            {filteredDevices.map((device) => (
-              <UserInfo
-                key={device.id}
-                userData={device}
-                isTargeted={
-                  targetDevice.deviceId === "All" ||
-                  targetDevice.deviceId === device.deviceId
-                }
-              />
-            ))}
           </div>
         </main>
       </div>

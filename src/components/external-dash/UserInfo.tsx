@@ -24,35 +24,65 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
     : {};
   return (
     <div className="relative isolate w-full mb-4">
+      {isTargeted && (
+        <>
+          {/* Extended glow effect - furthest back */}
+          <div
+            className="absolute -inset-[3px] bg-gradient-to-r from-red-500/20 via-violet-500/20 to-blue-500/20 rounded-xl blur-xl animate-gradient"
+            aria-hidden="true"
+          />
+
+          {/* Outer glow effect */}
+          <div
+            className="absolute -inset-[2px] bg-gradient-to-r from-red-500/50 via-violet-500/50 to-blue-500/50 rounded-xl blur-md animate-gradient"
+            aria-hidden="true"
+          />
+
+          {/* Primary glowing border */}
+          <div
+            className="absolute -inset-[1px] bg-gradient-to-r from-red-500 via-violet-500 to-blue-500 rounded-xl opacity-100 animate-gradient"
+            aria-hidden="true"
+          />
+        </>
+      )}
       <div
-        className={`relative z-10 bg-gray-800 border border-gray-700 transition-all duration-200 ease-in-out
-          ${isTargeted ? "ring-2 ring-blue-400" : ""}
-          ${expanded ? "scale-[1.02]" : "scale-100"}
-          rounded-xl p-5 shadow-lg hover:shadow-xl`}
+        className={`relative bg-gray-800 transition-all duration-300 ease-in-out
+          ${expanded ? "scale-[1.02]" : "scale-100 cursor-pointer"}
+          ${!isTargeted && "border border-gray-700"}
+          rounded-xl shadow-lg hover:shadow-xl`}
       >
+        {/* Card Header - Full Width */}
         <div
-          className="flex justify-between items-center cursor-pointer group select-none"
-          onClick={() => setExpanded(!expanded)}
+          className="flex justify-between items-center cursor-pointer group select-none p-5 w-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
         >
           <div className="flex items-center space-x-3">
             <div className="relative">
               <div
-                className={`w-2.5 h-2.5 rounded-full 
-                  ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+                className={`w-2.5 h-2.5 rounded-full transition-colors duration-300
+                  ${isConnected ? "bg-green-500" : "bg-red-500"}
+                 `}
               />
             </div>
 
             <h2
-              className={`text-lg font-medium tracking-tight antialiased
-              ${isTargeted ? "text-blue-300" : "text-gray-200"}`}
+              className={`text-lg font-medium tracking-tight antialiased transition-colors duration-300
+              ${
+                isTargeted
+                  ? "text-blue-300 drop-shadow-[0_0_8px_rgba(59,130,246,0.2)]"
+                  : "text-gray-200"
+              }`}
             >
               {userData.deviceName}
             </h2>
 
             <span
-              className={`px-2.5 py-1 text-xs font-medium rounded-full flex items-center gap-1.5 ${getPlatformBgColor(
-                platform
-              )}`}
+              className={`px-2.5 py-1 text-xs font-medium rounded-full flex items-center gap-1.5 transition-colors duration-300
+              ${getPlatformBgColor(platform)}
+              ${isTargeted ? "ring-1 ring-blue-400/30" : ""}`}
             >
               <PlatformIcon platform={platform} />
               {displayPlatform}
@@ -61,22 +91,24 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
 
           <div className="flex items-center space-x-3">
             <span
-              className={`px-3 py-1 text-xs font-medium rounded-full
+              className={`px-3 py-1 text-xs font-medium rounded-full transition-colors duration-300
                 ${
                   userData.deviceId
                     ? isConnected
-                      ? "bg-green-900 text-green-300"
-                      : "bg-red-900 text-red-300"
-                    : "bg-yellow-900 text-yellow-300"
-                }`}
+                      ? "bg-green-900/80 text-green-300"
+                      : "bg-red-900/80 text-red-300"
+                    : "bg-yellow-900/80 text-yellow-300"
+                }
+              `}
             >
               {userData.deviceId ? connectionStatusText : "Legacy"}
             </span>
 
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-4 w-4 text-gray-400 transition-transform duration-200
+              className={`h-4 w-4 transition-all duration-300
                 ${expanded ? "rotate-180" : ""}
+                ${isTargeted ? "text-blue-400" : "text-gray-400"}
                 group-hover:text-gray-300`}
               fill="none"
               viewBox="0 0 24 24"
@@ -93,7 +125,10 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
         </div>
 
         {expanded && (
-          <div className="grid grid-cols-2 gap-3 text-sm mt-4 animate-fadeIn border-t border-gray-700 pt-4 select-text">
+          <div
+            className="grid grid-cols-2 gap-3 text-sm px-5 pb-5 animate-fadeIn border-t border-gray-700 pt-4 select-text"
+            onClick={(e) => e.stopPropagation()}
+          >
             <InfoRow label="Socket ID" value={userData.id} monospace />
 
             {userData.deviceId && (
@@ -129,8 +164,23 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
             {Object.keys(extraDeviceInfo).length > 0 ? (
               <>
                 <div className="col-span-2 border-t border-gray-700 my-3" />
-                <div className="col-span-2 text-gray-400 font-medium mb-2">
-                  Device Information:
+                <div className="col-span-2 mb-2">
+                  <div className="flex items-center gap-1.5 text-gray-300 font-medium">
+                    <svg
+                      className="w-4 h-4 text-blue-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                    <span>Device Specifications</span>
+                  </div>
                 </div>
                 {Object.entries(extraDeviceInfo).map(([key, value]) => (
                   <InfoRow
@@ -145,18 +195,33 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
             ) : (
               <>
                 <div className="col-span-2 border-t border-gray-700 my-3" />
-                <div className="col-span-2 flex flex-col items-center gap-2 text-center py-2">
-                  <div className="text-gray-400 font-medium">
-                    No Device Information Provided
+                <div className="col-span-2 mb-2">
+                  <div className="flex items-center gap-1.5 text-gray-300 font-medium">
+                    <svg
+                      className="w-4 h-4 text-amber-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                    <span>Device Specifications</span>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Pass custom device info via the{" "}
-                    <code className="px-1 py-0.5 bg-gray-700 rounded">
+                </div>
+                <div className="col-span-2 text-xs text-gray-400">
+                  <div className="mb-2">
+                    No specifications available. Pass custom device info via the{" "}
+                    <code className="px-1 py-0.5 bg-gray-700 rounded text-blue-300">
                       extraDeviceInfo
                     </code>{" "}
                     prop:
                   </div>
-                  <code className="text-xs bg-gray-700/50 rounded p-2 font-mono text-gray-300 w-full">
+                  <code className="text-xs bg-gray-700/70 rounded p-2 font-mono text-gray-300 block w-full">
                     extraDeviceInfo: {"{"}
                     "Model": "iPhone 14", "OS": "iOS 16.0", ...
                     {"}"}
