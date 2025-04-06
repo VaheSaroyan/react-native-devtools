@@ -157,15 +157,7 @@ export function useMySocket({
         "error"
       );
     }
-  }, [
-    persistentDeviceId,
-    platform,
-    deviceName,
-    socketURL,
-    extraDeviceInfo,
-    logPrefix,
-    enableLogs,
-  ]);
+  }, [persistentDeviceId]);
 
   // Update the socket query parameters when deviceName changes
   useEffect(() => {
