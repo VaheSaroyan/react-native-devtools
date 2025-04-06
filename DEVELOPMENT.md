@@ -1,98 +1,156 @@
 # Development Guide
 
-This guide explains how to build and release the React Native DevTools application.
+This guide covers everything you need to know about developing React Native DevTools.
 
-## Prerequisites
+## 🛠 Prerequisites
 
-- Node.js 18+
-- pnpm
-- Apple Developer Account
-- Xcode (for macOS builds)
+- Node.js 20 or later
+- pnpm 10.4.1 or later
+- macOS for building and signing
+- Apple Developer account for signing
+- GitHub CLI (`gh`) for releases
 
-## Local Development Setup
+## 🚀 Getting Started
 
 1. Clone the repository:
 
-```bash
-git clone https://github.com/lovesworking/rn-better-dev-tools.git
-cd rn-better-dev-tools
-```
+   ```bash
+   git clone https://github.com/LovesWorking/rn-better-dev-tools.git
+   cd rn-better-dev-tools
+   ```
 
 2. Install dependencies:
 
+   ```bash
+   pnpm install
+   ```
+
+3. Create a `.env` file based on `.env.example`:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Fill in your Apple Developer credentials in `.env`:
+   ```
+   APPLE_ID=your.email@example.com
+   APPLE_PASSWORD=app-specific-password
+   APPLE_TEAM_ID=your-team-id
+   ```
+
+## 🏗 Building
+
+### Development Build
+
 ```bash
-pnpm install
-```
-
-3. Copy environment template:
-
-```bash
-cp .env.example .env
-```
-
-4. Configure environment variables in `.env`:
-
-- `APPLE_ID`: Your Apple Developer email
-- `APPLE_PASSWORD`: App-specific password (generate at https://appleid.apple.com/account/manage)
-- `APPLE_TEAM_ID`: Your Apple Developer Team ID
-- `DEBUG`: Leave as is for build debugging
-
-## Building
-
-### Local Development Build
-
-```bash
+# Start in development mode with hot reload
 pnpm start
-```
 
-### Production Build
-
-```bash
+# Build and copy to desktop for testing
 pnpm run make:desktop
+
+# Build only
+pnpm run make
 ```
 
-This will:
+### Release Build
 
-1. Build the application
-2. Code sign it
-3. Create a zip file
-4. Copy the release to `~/Desktop/rn-dev-tools-releases`
+We provide an automated release script that:
 
-### GitHub Release
+- Bumps version (minor)
+- Builds locally to verify
+- Commits changes
+- Creates and pushes tag
+- Monitors GitHub Action progress
 
 ```bash
-pnpm run release
+# Using npm script
+pnpm run auto-release
+
+# Or directly
+./auto-release.sh
 ```
 
-This will:
+## 🐛 Debugging
 
-1. Build the application
-2. Create a new GitHub release
-3. Upload the build artifacts
+### Enable Debug Logs
 
-## Code Signing
+Add to your `.env`:
 
-The application is signed using your Apple Developer certificate. The certificate fingerprint is configured in `forge.config.ts`.
+```bash
+DEBUG=electron-osx-sign*
+```
 
-## Important Files
+### Common Issues
 
-- `forge.config.ts`: Electron Forge configuration
-- `package.json`: Project configuration and scripts
-- `.env`: Local environment variables (do not commit)
-- `copy-to-desktop.sh`: Script to copy builds to desktop
+1. **Build Hanging on "Finalizing package"**
 
-## Release Process
+   - Check Apple Developer credentials
+   - Verify keychain access
+   - Run with debug logs enabled
+
+2. **Permission Issues**
+
+   ```bash
+   # Fix directory permissions
+   sudo chown -R $(whoami) .
+
+   # Clean build artifacts
+   rm -rf .vite out
+   ```
+
+3. **Certificate Issues**
+   - Verify Apple Developer membership is active
+   - Check Team ID matches in `.env`
+   - Ensure app-specific password is correct
+
+### Development Commands
+
+```bash
+# Clean install
+pnpm run nuke
+
+# Package without making distributables
+pnpm run package
+
+# Run linter
+pnpm run lint
+```
+
+## 📦 Project Structure
+
+```
+.
+├── src/                  # Source code
+│   ├── main.ts          # Main process
+│   ├── preload.ts       # Preload scripts
+│   └── components/      # React components
+├── assets/              # Static assets
+├── .github/workflows/   # GitHub Actions
+└── forge.config.ts      # Electron Forge config
+```
+
+## 🔄 Release Process
+
+### Automatic Release
+
+```bash
+./auto-release.sh
+```
+
+### Manual Release Steps
 
 1. Update version in `package.json`
-2. Commit changes
-3. Run `pnpm run release`
-4. The GitHub Action will build and publish the release
+2. Build and test locally
+3. Create and push tag
+4. GitHub Action will build and publish
 
-## Troubleshooting
+## 🧪 Testing
 
-If the build fails:
+Before submitting a PR:
 
-1. Check the DEBUG logs in the console
-2. Verify your Apple Developer credentials
-3. Ensure your certificates are valid
-4. Clear the build cache: `pnpm run nuke`
+1. Test in development mode (`pnpm start`)
+2. Build and test locally (`pnpm run make:desktop`)
+3. Verify all features work
+4. Check console for errors
+5. Run linter (`pnpm run lint`)

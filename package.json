@@ -13,7 +13,8 @@
     "make": "electron-forge make",
     "make:desktop": "pnpm run make && ./copy-to-desktop.sh",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "auto-release": "./auto-release.sh"
   },
   "keywords": [],
   "author": {

@@ -1,33 +1,69 @@
 # React Native DevTools
 
-Enhanced developer tools for React Native applications, currently supporting React Query DevTools.
+Enhanced developer tools for React Native applications, currently supporting React Query DevTools with a beautiful native interface.
 
-## Features
+![React Native DevTools Screenshot](./assets/screenshot.png)
 
-- Real-time React Query state monitoring
-- Easy-to-use interface
-- Native desktop application for macOS
+## ✨ Features
 
-## Installation
+- 🔄 Real-time React Query state monitoring
+- 🎨 Beautiful native macOS interface
+- 🚀 Automatic connection to Native apps
+- 📊 Query status visualization
+- ⚡️ Zero configuration required
 
-1. Download the latest release from the [Releases page](https://github.com/lovesworking/rn-better-dev-tools/releases)
-2. Extract the zip file
+## 📦 Installation
+
+1. Download the latest release from the [Releases page](https://github.com/LovesWorking/rn-better-dev-tools/releases)
+2. Extract the ZIP file
 3. Move the app to your Applications folder
 4. Launch the app
 
-## Usage
+## 🚀 Quick Start
 
 1. Launch React Native DevTools application
 2. Start your React Native application(s)
-3. The DevTools will automatically detect and connect to your running React Native apps
-4. Start monitoring your React Query state in real-time
+3. DevTools will automatically detect and connect to your running applications
 
-> **Note**: Always launch React Native DevTools before starting your React Native applications to ensure proper connection.
+> **Note**: Always launch DevTools before starting your React Native applications to ensure proper connection.
 
-## Support
+## 💡 Usage Tips
 
-If you encounter any issues, please file them in the [GitHub Issues](https://github.com/lovesworking/rn-better-dev-tools/issues) section.
+- Keep DevTools running while developing
+- Monitor query states in real-time
+- View detailed query information
+- Track cache updates and invalidations
 
-## License
+## 🤝 Contributing
+
+I welcome contributions! See our [Development Guide](DEVELOPMENT.md) for details on:
+
+- Setting up the development environment
+- Building and testing
+- Release process
+- Contribution guidelines
+
+## 🐛 Troubleshooting
+
+Having issues? Check these common solutions:
+
+1. **App Not Connecting**
+
+   - Ensure DevTools is launched before your React Native app
+   - Check that your React Native app is running
+   - Verify you're on the same network
+
+2. **App Not Starting**
+   - Verify you're using the latest version
+   - Check system requirements (macOS)
+   - Try reinstalling the application
+
+For more detailed troubleshooting, see our [Development Guide](DEVELOPMENT.md).
+
+## 📄 License
 
 MIT
+
+---
+
+Made with ❤️ by [LovesWorking](https://github.com/LovesWorking)
