@@ -135,14 +135,6 @@ export const Dash: React.FC<DashProps> = ({
                 {isDashboardConnected ? "Connected" : "Disconnected"}
               </span>
             </div>
-
-            {filteredDevices.length === 0 && (
-              <div className="flex items-center px-2.5 py-1.5 bg-gray-800/40 rounded-md border border-gray-700/30">
-                <span className="text-xs font-medium text-gray-400">
-                  No devices available
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Right Section */}
