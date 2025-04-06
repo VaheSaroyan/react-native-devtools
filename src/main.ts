@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 import { startServer } from "./server";
@@ -21,8 +21,6 @@ const createWindow = () => {
     height: 700,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true, // Protect against prototype pollution
-      nodeIntegration: false, // Security: Disable node integration in renderer
     },
   });
 
@@ -34,25 +32,6 @@ const createWindow = () => {
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
     );
   }
-
-  // Handle external links - intercept all "new-window" events
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Open URLs in the user's browser
-    shell.openExternal(url);
-    return { action: "deny" };
-  });
-
-  // Intercept navigation requests to external URLs
-  mainWindow.webContents.on("will-navigate", (event, url) => {
-    const parsedUrl = new URL(url);
-    const currentUrl = new URL(mainWindow.webContents.getURL());
-
-    // Only allow navigation within the app
-    if (parsedUrl.origin !== currentUrl.origin) {
-      event.preventDefault();
-      shell.openExternal(url);
-    }
-  });
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
