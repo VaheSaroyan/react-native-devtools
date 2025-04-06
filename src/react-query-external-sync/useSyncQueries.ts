@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { QueryKey } from "@tanstack/query-core";
 import { onlineManager, QueryClient } from "@tanstack/react-query";
 
@@ -6,6 +6,7 @@ import { Dehydrate } from "./hydration";
 import { SyncMessage } from "./types";
 import { useMySocket } from "./useMySocket";
 import { PlatformOS } from "./platformUtils";
+import { log } from "./utils/logger";
 
 /**
  * Query actions that can be performed on a query.
@@ -78,8 +79,10 @@ function checkVersion(queryClient: QueryClient) {
     !version.toString().startsWith("4") &&
     !version.toString().startsWith("5")
   ) {
-    console.warn(
-      "This version of React Query has not been tested with the dev tools plugin. Some features might not work as expected."
+    log(
+      "This version of React Query has not been tested with the dev tools plugin. Some features might not work as expected.",
+      true,
+      "warn"
     );
   }
 }
@@ -97,6 +100,16 @@ interface useSyncQueriesExternalProps {
   extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
   socketURL: string;
   platform: PlatformOS; // Required platform
+  /**
+   * Enable/disable logging for debugging purposes
+   * @default false
+   */
+  enableLogs?: boolean;
+  /**
+   * Disable query sync for this device
+   * @default false
+   */
+  disableSync?: boolean;
 }
 
 /**
@@ -115,6 +128,8 @@ export function useSyncQueriesExternal({
   extraDeviceInfo,
   platform,
   deviceId,
+  enableLogs = false,
+  disableSync = false,
 }: useSyncQueriesExternalProps) {
   // ==========================================================
   // Validate deviceId
@@ -123,6 +138,16 @@ export function useSyncQueriesExternal({
     throw new Error(
       `[${deviceName}] deviceId is required and must not be empty. This ID must persist across app restarts, especially if you have multiple devices of the same type. If you only have one iOS and one Android device, you can use 'ios' and 'android'.`
     );
+  }
+
+  // Early return if sync is disabled
+  if (disableSync) {
+    return {
+      connect: (): void => void 0,
+      disconnect: (): void => void 0,
+      isConnected: false,
+      socket: null,
+    };
   }
 
   // ==========================================================
@@ -140,6 +165,7 @@ export function useSyncQueriesExternal({
     persistentDeviceId: deviceId,
     extraDeviceInfo,
     platform,
+    enableLogs,
   });
 
   // Use a ref to track previous connection state to avoid duplicate logs
@@ -151,9 +177,9 @@ export function useSyncQueriesExternal({
     // Only log connection state changes to reduce noise
     if (prevConnectedRef.current !== isConnected) {
       if (!isConnected) {
-        console.log(`${logPrefix} Not connected to external dashboard`);
+        log(`${logPrefix} Not connected to external dashboard`, enableLogs);
       } else {
-        console.log(`${deviceName} Connected to external dashboard`);
+        log(`${deviceName} Connected to external dashboard`, enableLogs);
       }
       prevConnectedRef.current = isConnected;
     }
@@ -172,10 +198,10 @@ export function useSyncQueriesExternal({
     // ==========================================================
     const initialStateSubscription = socket.on("request-initial-state", () => {
       if (!deviceId) {
-        console.warn(`${logPrefix} No persistent device ID found`);
+        log(`${logPrefix} No persistent device ID found`, enableLogs, "warn");
         return;
       }
-      console.log(`${logPrefix} Dashboard is requesting initial state`);
+      log(`${logPrefix} Dashboard is requesting initial state`, enableLogs);
       const dehydratedState = Dehydrate(queryClient as unknown as QueryClient);
       const syncMessage: SyncMessage = {
         type: "dehydrated-state",
@@ -184,8 +210,9 @@ export function useSyncQueriesExternal({
         persistentDeviceId: deviceId,
       };
       socket.emit("query-sync", syncMessage);
-      console.log(
-        `[${deviceName}] Sent initial state to dashboard (${dehydratedState.queries.length} queries)`
+      log(
+        `[${deviceName}] Sent initial state to dashboard (${dehydratedState.queries.length} queries)`,
+        enableLogs
       );
     });
 
@@ -197,7 +224,7 @@ export function useSyncQueriesExternal({
       (message: OnlineManagerMessage) => {
         const { action, targetDeviceId } = message;
         if (!deviceId) {
-          console.warn(`${logPrefix} No persistent device ID found`);
+          log(`${logPrefix} No persistent device ID found`, enableLogs, "warn");
           return;
         }
         // Only process if this message targets the current device
@@ -210,18 +237,19 @@ export function useSyncQueriesExternal({
           return;
         }
 
-        console.log(
-          `[${deviceName}] Received online-manager action: ${action}`
+        log(
+          `[${deviceName}] Received online-manager action: ${action}`,
+          enableLogs
         );
 
         switch (action) {
           case "ACTION-ONLINE-MANAGER-ONLINE": {
-            console.log(`${logPrefix} Set online state: ONLINE`);
+            log(`${logPrefix} Set online state: ONLINE`, enableLogs);
             onlineManager.setOnline(true);
             break;
           }
           case "ACTION-ONLINE-MANAGER-OFFLINE": {
-            console.log(`${logPrefix} Set online state: OFFLINE`);
+            log(`${logPrefix} Set online state: OFFLINE`, enableLogs);
             onlineManager.setOnline(false);
             break;
           }
@@ -237,7 +265,11 @@ export function useSyncQueriesExternal({
       (message: QueryActionMessage) => {
         const { queryHash, queryKey, data, action, deviceId } = message;
         if (!deviceId) {
-          console.warn(`[${deviceName}] No persistent device ID found`);
+          log(
+            `[${deviceName}] No persistent device ID found`,
+            enableLogs,
+            "warn"
+          );
           return;
         }
         // Skip if not targeted at this device
@@ -250,19 +282,24 @@ export function useSyncQueriesExternal({
           return;
         }
 
-        console.log(
-          `${logPrefix} Received query action: ${action} for query ${queryHash}`
+        log(
+          `${logPrefix} Received query action: ${action} for query ${queryHash}`,
+          enableLogs
         );
 
         const activeQuery = queryClient.getQueryCache().get(queryHash);
         if (!activeQuery) {
-          console.warn(`${logPrefix} Query with hash ${queryHash} not found`);
+          log(
+            `${logPrefix} Query with hash ${queryHash} not found`,
+            enableLogs,
+            "warn"
+          );
           return;
         }
 
         switch (action) {
           case "ACTION-DATA-UPDATE": {
-            console.log(`${logPrefix} Updating data for query:`, queryKey);
+            log(`${logPrefix} Updating data for query:`, enableLogs);
             queryClient.setQueryData(queryKey, data, {
               updatedAt: Date.now(),
             });
@@ -270,10 +307,7 @@ export function useSyncQueriesExternal({
           }
 
           case "ACTION-TRIGGER-ERROR": {
-            console.log(
-              `${logPrefix} Triggering error state for query:`,
-              queryKey
-            );
+            log(`${logPrefix} Triggering error state for query:`, enableLogs);
             const error = new Error("Unknown error from devtools");
 
             const __previousQueryOptions = activeQuery.options;
@@ -289,19 +323,16 @@ export function useSyncQueriesExternal({
             break;
           }
           case "ACTION-RESTORE-ERROR": {
-            console.log(
+            log(
               `${logPrefix} Restoring from error state for query:`,
-              queryKey
+              enableLogs
             );
             queryClient.resetQueries(activeQuery);
             break;
           }
           case "ACTION-TRIGGER-LOADING": {
             if (!activeQuery) return;
-            console.log(
-              `${logPrefix} Triggering loading state for query:`,
-              queryKey
-            );
+            log(`${logPrefix} Triggering loading state for query:`, enableLogs);
             const __previousQueryOptions = activeQuery.options;
             // Trigger a fetch in order to trigger suspense as well.
             activeQuery.fetch({
@@ -325,9 +356,9 @@ export function useSyncQueriesExternal({
             break;
           }
           case "ACTION-RESTORE-LOADING": {
-            console.log(
+            log(
               `${logPrefix} Restoring from loading state for query:`,
-              queryKey
+              enableLogs
             );
             const previousState = activeQuery.state;
             const previousOptions = activeQuery.state.fetchMeta
@@ -351,39 +382,40 @@ export function useSyncQueriesExternal({
             break;
           }
           case "ACTION-RESET": {
-            console.log(`${logPrefix} Resetting query:`, queryKey);
+            log(`${logPrefix} Resetting query:`, enableLogs);
             queryClient.resetQueries(activeQuery);
             break;
           }
           case "ACTION-REMOVE": {
-            console.log(`${logPrefix} Removing query:`, queryKey);
+            log(`${logPrefix} Removing query:`, enableLogs);
             queryClient.removeQueries(activeQuery);
             break;
           }
           case "ACTION-REFETCH": {
-            console.log(`${logPrefix} Refetching query:`, queryKey);
+            log(`${logPrefix} Refetching query:`, enableLogs);
             const promise = activeQuery.fetch();
             promise.catch((error) => {
               // Log fetch errors but don't propagate them
-              console.error(
+              log(
                 `[${deviceName}] Refetch error for ${queryHash}:`,
-                error
+                enableLogs,
+                "error"
               );
             });
             break;
           }
           case "ACTION-INVALIDATE": {
-            console.log(`${logPrefix} Invalidating query:`, queryKey);
+            log(`${logPrefix} Invalidating query:`, enableLogs);
             queryClient.invalidateQueries(activeQuery);
             break;
           }
           case "ACTION-ONLINE-MANAGER-ONLINE": {
-            console.log(`${logPrefix} Setting online state: ONLINE`);
+            log(`${logPrefix} Setting online state: ONLINE`, enableLogs);
             onlineManager.setOnline(true);
             break;
           }
           case "ACTION-ONLINE-MANAGER-OFFLINE": {
-            console.log(`${logPrefix} Setting online state: OFFLINE`);
+            log(`${logPrefix} Setting online state: OFFLINE`, enableLogs);
             onlineManager.setOnline(false);
             break;
           }
@@ -396,7 +428,7 @@ export function useSyncQueriesExternal({
     // ==========================================================
     const unsubscribe = queryClient.getQueryCache().subscribe(() => {
       if (!deviceId) {
-        console.warn(`${logPrefix} No persistent device ID found`);
+        log(`${logPrefix} No persistent device ID found`, enableLogs, "warn");
         return;
       }
       // Dehydrate the current state
@@ -418,13 +450,13 @@ export function useSyncQueriesExternal({
     // Cleanup function to unsubscribe from all events
     // ==========================================================
     return () => {
-      console.log(`${logPrefix} Cleaning up event listeners`);
+      log(`${logPrefix} Cleaning up event listeners`, enableLogs);
       queryActionSubscription?.off();
       initialStateSubscription?.off();
       onlineManagerSubscription?.off();
       unsubscribe();
     };
-  }, [queryClient, socket, deviceName, isConnected, deviceId]);
+  }, [queryClient, socket, deviceName, isConnected, deviceId, enableLogs]);
 
   return { connect, disconnect, isConnected, socket };
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io as socketIO, Socket } from "socket.io-client";
 
 import { getPlatformSpecificURL, PlatformOS } from "./platformUtils";
+import { log } from "./utils/logger";
 
 interface Props {
   deviceName: string; // Unique name to identify the device
@@ -9,6 +10,11 @@ interface Props {
   persistentDeviceId: string | null; // Persistent device ID
   extraDeviceInfo?: Record<string, string>; // Additional device information as key-value pairs
   platform: PlatformOS; // Platform identifier
+  /**
+   * Enable/disable logging for debugging purposes
+   * @default false
+   */
+  enableLogs?: boolean;
 }
 
 /**
@@ -34,6 +40,7 @@ export function useMySocket({
   persistentDeviceId,
   extraDeviceInfo,
   platform,
+  enableLogs = false,
 }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -45,21 +52,25 @@ export function useMySocket({
 
   // Define event handlers at function root level to satisfy linter
   const onConnect = () => {
-    console.log(`${logPrefix} Socket connected successfully`);
+    log(`${logPrefix} Socket connected successfully`, enableLogs);
     setIsConnected(true);
   };
 
   const onDisconnect = (reason: string) => {
-    console.log(`${logPrefix} Socket disconnected. Reason: ${reason}`);
+    log(`${logPrefix} Socket disconnected. Reason: ${reason}`, enableLogs);
     setIsConnected(false);
   };
 
   const onConnectError = (error: Error) => {
-    console.error(`${logPrefix} Socket connection error:`, error.message);
+    log(
+      `${logPrefix} Socket connection error: ${error.message}`,
+      enableLogs,
+      "error"
+    );
   };
 
   const onConnectTimeout = () => {
-    console.error(`${logPrefix} Socket connection timeout`);
+    log(`${logPrefix} Socket connection timeout`, enableLogs, "error");
   };
 
   // Main socket initialization - runs only once
@@ -80,15 +91,17 @@ export function useMySocket({
     const platformUrl = getPlatformSpecificURL(socketURL, platform);
     currentSocketURL = platformUrl;
 
-    console.log(
-      `${logPrefix} Platform: ${platform}, using URL: ${platformUrl}`
+    log(
+      `${logPrefix} Platform: ${platform}, using URL: ${platformUrl}`,
+      enableLogs
     );
 
     try {
       // Use existing global socket or create a new one
       if (!globalSocketInstance) {
-        console.log(
-          `${logPrefix} Creating new socket instance to ${platformUrl}`
+        log(
+          `${logPrefix} Creating new socket instance to ${platformUrl}`,
+          enableLogs
         );
         globalSocketInstance = socketIO(platformUrl, {
           autoConnect: true,
@@ -102,8 +115,9 @@ export function useMySocket({
           transports: ["websocket"], // Prefer websocket transport for React Native
         });
       } else {
-        console.log(
-          `${logPrefix} Reusing existing socket instance to ${platformUrl}`
+        log(
+          `${logPrefix} Reusing existing socket instance to ${platformUrl}`,
+          enableLogs
         );
       }
 
@@ -117,7 +131,7 @@ export function useMySocket({
       // Check initial connection state
       if (socketRef.current.connected) {
         setIsConnected(true);
-        console.log(`${logPrefix} Socket already connected on init`);
+        log(`${logPrefix} Socket already connected on init`, enableLogs);
       }
 
       // Set up event handlers
@@ -127,7 +141,7 @@ export function useMySocket({
       // Clean up event listeners on unmount but don't disconnect
       return () => {
         if (socketRef.current) {
-          console.log(`${logPrefix} Cleaning up socket event listeners`);
+          log(`${logPrefix} Cleaning up socket event listeners`, enableLogs);
           socketRef.current.off("connect", onConnect);
           socketRef.current.off("disconnect", onDisconnect);
           socketRef.current.off("connect_error", onConnectError);
@@ -137,7 +151,11 @@ export function useMySocket({
         }
       };
     } catch (error) {
-      console.error(`${logPrefix} Failed to initialize socket:`, error);
+      log(
+        `${logPrefix} Failed to initialize socket: ${error}`,
+        enableLogs,
+        "error"
+      );
     }
   }, [
     persistentDeviceId,
@@ -146,6 +164,7 @@ export function useMySocket({
     socketURL,
     extraDeviceInfo,
     logPrefix,
+    enableLogs,
   ]);
 
   // Update the socket query parameters when deviceName changes
@@ -155,7 +174,7 @@ export function useMySocket({
       socketRef.current.io.opts.query &&
       persistentDeviceId
     ) {
-      console.log(`${logPrefix} Updating device name in socket connection`);
+      log(`${logPrefix} Updating device name in socket connection`, enableLogs);
       socketRef.current.io.opts.query = {
         ...socketRef.current.io.opts.query,
         deviceName,
@@ -163,7 +182,7 @@ export function useMySocket({
         platform,
       };
     }
-  }, [deviceName, logPrefix, persistentDeviceId, platform]);
+  }, [deviceName, logPrefix, persistentDeviceId, platform, enableLogs]);
 
   // Update the socket URL when socketURL changes
   useEffect(() => {
@@ -176,8 +195,9 @@ export function useMySocket({
       currentSocketURL !== platformUrl &&
       persistentDeviceId
     ) {
-      console.log(
-        `${logPrefix} Socket URL changed from ${currentSocketURL} to ${platformUrl}`
+      log(
+        `${logPrefix} Socket URL changed from ${currentSocketURL} to ${platformUrl}`,
+        enableLogs
       );
 
       try {
@@ -185,8 +205,9 @@ export function useMySocket({
         socketRef.current.disconnect();
         currentSocketURL = platformUrl;
 
-        console.log(
-          `${logPrefix} Creating new socket connection to ${platformUrl}`
+        log(
+          `${logPrefix} Creating new socket connection to ${platformUrl}`,
+          enableLogs
         );
         globalSocketInstance = socketIO(platformUrl, {
           autoConnect: true,
@@ -202,20 +223,28 @@ export function useMySocket({
         socketRef.current = globalSocketInstance;
         setSocket(socketRef.current);
       } catch (error) {
-        console.error(
-          `${logPrefix} Failed to update socket connection:`,
-          error
+        log(
+          `${logPrefix} Failed to update socket connection: ${error}`,
+          enableLogs,
+          "error"
         );
       }
     }
-  }, [socketURL, deviceName, logPrefix, persistentDeviceId, platform]);
+  }, [
+    socketURL,
+    deviceName,
+    logPrefix,
+    persistentDeviceId,
+    platform,
+    enableLogs,
+  ]);
 
   /**
    * Manually connect to the socket server
    */
   function connect() {
     if (socketRef.current && !socketRef.current.connected) {
-      console.log(`${logPrefix} Manually connecting to socket server`);
+      log(`${logPrefix} Manually connecting to socket server`, enableLogs);
       socketRef.current.connect();
     }
   }
@@ -225,7 +254,7 @@ export function useMySocket({
    */
   function disconnect() {
     if (socketRef.current && socketRef.current.connected) {
-      console.log(`${logPrefix} Manually disconnecting from socket server`);
+      log(`${logPrefix} Manually disconnecting from socket server`, enableLogs);
       socketRef.current.disconnect();
     }
   }

@@ -220,6 +220,7 @@ export const Dash: React.FC<DashProps> = ({
                   targetDevice.deviceId === "All" ||
                   targetDevice.deviceId === device.deviceId
                 }
+                
               />
             ))}
           </div>
