@@ -184,13 +184,22 @@ export const Dash: React.FC<DashProps> = ({
                   </div>
 
                   {targetDevice && (
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 bg-blue-600/10 rounded-lg border border-blue-400/30 shadow-sm">
+                    <div className="flex items-center gap-2.5 px-3 py-1.5 bg-gray-800/90 rounded-lg border border-gray-700/50 shadow-sm hover:border-gray-600/50 transition-colors duration-200">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-blue-300 font-mono uppercase tracking-wide">
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            targetDevice.deviceId === "All"
+                              ? "bg-blue-500"
+                              : targetDevice.isConnected
+                              ? "bg-green-500"
+                              : "bg-red-500"
+                          }`}
+                        ></div>
+                        <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
                           Target
                         </span>
                       </div>
-                      <span className="text-sm text-blue-100 font-medium">
+                      <span className="text-sm text-gray-200 font-medium">
                         {targetDevice.deviceId === "All"
                           ? "All Devices"
                           : targetDevice.deviceName}
@@ -220,7 +229,6 @@ export const Dash: React.FC<DashProps> = ({
                   targetDevice.deviceId === "All" ||
                   targetDevice.deviceId === device.deviceId
                 }
-                
               />
             ))}
           </div>
