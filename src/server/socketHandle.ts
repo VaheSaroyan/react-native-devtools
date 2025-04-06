@@ -388,7 +388,7 @@ export default function socketHandle({ io }: Props) {
 
       if (targetUser) {
         console.log(
-          `${LOG_PREFIX} Sending to target device ${targetUser.deviceName} (${targetUser.id})`
+          `${LOG_PREFIX} Sending to target device ${targetUser.deviceName} (${targetUser.deviceId}) targetDeviceId: ${targetDeviceId}`
         );
         action(targetUser);
       } else {

@@ -105,11 +105,6 @@ interface useSyncQueriesExternalProps {
    * @default false
    */
   enableLogs?: boolean;
-  /**
-   * Disable query sync for this device
-   * @default false
-   */
-  disableSync?: boolean;
 }
 
 /**
@@ -129,7 +124,6 @@ export function useSyncQueriesExternal({
   platform,
   deviceId,
   enableLogs = false,
-  disableSync = false,
 }: useSyncQueriesExternalProps) {
   // ==========================================================
   // Validate deviceId
@@ -138,16 +132,6 @@ export function useSyncQueriesExternal({
     throw new Error(
       `[${deviceName}] deviceId is required and must not be empty. This ID must persist across app restarts, especially if you have multiple devices of the same type. If you only have one iOS and one Android device, you can use 'ios' and 'android'.`
     );
-  }
-
-  // Early return if sync is disabled
-  if (disableSync) {
-    return {
-      connect: (): void => void 0,
-      disconnect: (): void => void 0,
-      isConnected: false,
-      socket: null,
-    };
   }
 
   // ==========================================================
