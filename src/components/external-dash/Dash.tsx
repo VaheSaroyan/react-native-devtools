@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
+import { LogConsole } from "./LogConsole";
 
 const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
   const normalizedPlatform = platform?.toLowerCase() || "";
@@ -177,7 +178,7 @@ export const Dash: React.FC<DashProps> = ({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto p-4 pb-72">
           <div className="px-2 max-w-3xl mx-auto">
             {/* Device count and stats */}
             {filteredDevices.length > 0 ? (
@@ -314,7 +315,11 @@ export const Dash: React.FC<DashProps> = ({
             )}
           </div>
         </main>
+
+        {/* Add LogConsole */}
+        <LogConsole />
       </div>
+
       <ReactQueryDevtools initialIsOpen />
     </div>
   );

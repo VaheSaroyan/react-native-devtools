@@ -10,6 +10,7 @@ import { SyncMessage } from "./shared/types";
 import useConnectedUsers from "./_hooks/useConnectedUsers";
 import { User } from "./types/User";
 import { Socket } from "socket.io-client";
+import { logger, createDeviceLogger } from "./utils/logger";
 
 /**
  * Query actions that can be performed on a query.
@@ -73,9 +74,11 @@ const hydrateState = (
   message: SyncMessage,
   deviceName: string
 ) => {
-  console.log(
-    `${LOG_PREFIX} Hydrating QueryClient with state from: ${deviceName}`
+  logger.info(
+    `${LOG_PREFIX} Hydrating QueryClient with state from: ${deviceName}`,
+    { deviceName, deviceId: message.persistentDeviceId }
   );
+
   Hydrate(queryClient, message.state, {
     defaultOptions: {
       queries: {
@@ -88,9 +91,11 @@ const hydrateState = (
 
 /** Sends a request for initial state to the target device. */
 const requestInitialState = (socket: Socket, targetDevice: User) => {
-  console.log(
+  const deviceLogger = createDeviceLogger(targetDevice);
+  deviceLogger.info(
     `${LOG_PREFIX} Requesting initial state from: ${targetDevice.deviceName}`
   );
+
   const message: QueryRequestInitialStateMessage = {
     targetDeviceId: targetDevice.deviceId,
   };
@@ -104,9 +109,11 @@ const sendQueryAction = (
   action: QueryActions,
   query: { queryHash: string; queryKey: QueryKey; state: { data: unknown } }
 ) => {
-  console.log(
-    `${LOG_PREFIX} Forwarding query action: ${action} for query hash: ${query.queryHash} to device: ${targetDevice.deviceName}`
+  const deviceLogger = createDeviceLogger(targetDevice);
+  deviceLogger.info(
+    `${LOG_PREFIX} Forwarding query action: ${action} for query hash: ${query.queryHash}`
   );
+
   const message: QueryActionMessage = {
     action,
     deviceId: targetDevice.deviceId,
@@ -123,11 +130,11 @@ const sendOnlineStatus = (
   targetDevice: User,
   isOnline: boolean
 ) => {
-  console.log(
-    `${LOG_PREFIX} Sending online status (${
-      isOnline ? "ONLINE" : "OFFLINE"
-    }) to: ${targetDevice.deviceName}`
+  const deviceLogger = createDeviceLogger(targetDevice);
+  deviceLogger.info(
+    `${LOG_PREFIX} Sending online status (${isOnline ? "ONLINE" : "OFFLINE"})`
   );
+
   const message: OnlineManagerMessage = {
     action: isOnline
       ? "ACTION-ONLINE-MANAGER-ONLINE"
@@ -135,9 +142,8 @@ const sendOnlineStatus = (
     targetDeviceId: targetDevice.deviceId,
   };
   socket.emit("online-manager", message);
-  console.log(
-    `${LOG_PREFIX} Online status message sent to: ${targetDevice.deviceName}`
-  );
+
+  deviceLogger.debug(`${LOG_PREFIX} Online status message sent`);
 };
 
 interface Props {
@@ -170,11 +176,16 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
         return allDevices.find((device) => device.deviceId === deviceId);
       }
 
-      const deviceName = getDeviceFromDeviceId(
-        message.persistentDeviceId
-      )?.deviceName;
-      console.log(
-        `${LOG_PREFIX} Received query sync from: ${deviceName} (${message.type})`
+      const device = getDeviceFromDeviceId(message.persistentDeviceId);
+      const deviceName = device?.deviceName;
+
+      logger.info(
+        `${LOG_PREFIX} Received query sync from: ${deviceName} (${message.type})`,
+        {
+          deviceName,
+          deviceId: message.persistentDeviceId,
+          platform: device?.platform,
+        }
       );
 
       if (message.type !== "dehydrated-state") return;
@@ -185,24 +196,39 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
         message.persistentDeviceId === currentSelectedDevice.deviceId;
 
       if (isFromSelectedDevice) {
-        console.log(
-          `${LOG_PREFIX} Processing sync from: ${deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`
+        logger.info(
+          `${LOG_PREFIX} Processing sync from: ${deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`,
+          {
+            deviceName,
+            deviceId: message.persistentDeviceId,
+            platform: device?.platform,
+          }
         );
 
         // Sync online manager state if needed
         if (message.isOnlineManagerOnline !== onlineManager.isOnline()) {
-          console.log(
+          logger.info(
             `${LOG_PREFIX} Setting online status to match device: ${
               message.isOnlineManagerOnline ? "ONLINE" : "OFFLINE"
-            }`
+            }`,
+            {
+              deviceName,
+              deviceId: message.persistentDeviceId,
+              platform: device?.platform,
+            }
           );
           onlineManager.setOnline(message.isOnlineManagerOnline);
         }
 
         hydrateState(queryClient, message, deviceName);
       } else {
-        console.log(
-          `${LOG_PREFIX} Ignoring sync from: ${deviceName} # ${message.persistentDeviceId} - not selected device ID # (${currentSelectedDevice.deviceId})`
+        logger.debug(
+          `${LOG_PREFIX} Ignoring sync from: ${deviceName} # ${message.persistentDeviceId} - not selected device ID # (${currentSelectedDevice.deviceId})`,
+          {
+            deviceName,
+            deviceId: message.persistentDeviceId,
+            platform: device?.platform,
+          }
         );
       }
     },
@@ -217,8 +243,13 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     selectedDeviceRef.current = targetDevice; // Update the ref immediately
 
     if (!isConnected || !socket) {
-      console.log(
-        `${LOG_PREFIX} Device selection changed, but not connected to server.`
+      logger.warn(
+        `${LOG_PREFIX} Device selection changed, but not connected to server.`,
+        {
+          deviceName: targetDevice.deviceName,
+          deviceId: targetDevice.deviceId,
+          platform: targetDevice.platform,
+        }
       );
       return;
     }
@@ -228,19 +259,34 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
       return;
     }
 
-    console.log(
-      `${LOG_PREFIX} Device selection changed to: ${targetDevice.deviceName} (${targetDevice.deviceId})`
+    logger.info(
+      `${LOG_PREFIX} Device selection changed to: ${targetDevice.deviceName} (${targetDevice.deviceId})`,
+      {
+        deviceName: targetDevice.deviceName,
+        deviceId: targetDevice.deviceId,
+        platform: targetDevice.platform,
+      }
     );
 
     if (isValidDevice(targetDevice)) {
-      console.log(
-        `${LOG_PREFIX} Clearing query cache before requesting new state`
+      logger.info(
+        `${LOG_PREFIX} Clearing query cache before requesting new state`,
+        {
+          deviceName: targetDevice.deviceName,
+          deviceId: targetDevice.deviceId,
+          platform: targetDevice.platform,
+        }
       );
       queryClient.clear(); // Clear cache for the new device
       requestInitialState(socket, targetDevice);
     } else {
-      console.log(
-        `${LOG_PREFIX} Not requesting initial state - Invalid device selection: ${targetDevice.deviceName} (${targetDevice.deviceId})`
+      logger.warn(
+        `${LOG_PREFIX} Not requesting initial state - Invalid device selection: ${targetDevice.deviceName} (${targetDevice.deviceId})`,
+        {
+          deviceName: targetDevice.deviceName,
+          deviceId: targetDevice.deviceId,
+          platform: targetDevice.platform,
+        }
       );
       // Optionally clear cache even for invalid selection if desired
       // queryClient.clear();
@@ -250,15 +296,15 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
   // Effect to set up the main query-sync listener
   useEffect(() => {
     if (!isConnected || !socket) {
-      console.log(`${LOG_PREFIX} Cannot set up listeners: Not connected.`);
+      logger.warn(`${LOG_PREFIX} Cannot set up listeners: Not connected.`);
       return;
     }
 
-    console.log(`${LOG_PREFIX} Setting up query-sync listener`);
+    logger.info(`${LOG_PREFIX} Setting up query-sync listener`);
     socket.on("query-sync", handleQuerySync);
 
     return () => {
-      console.log(`${LOG_PREFIX} Cleaning up query-sync listener`);
+      logger.info(`${LOG_PREFIX} Cleaning up query-sync listener`);
       socket.off("query-sync", handleQuerySync);
     };
   }, [isConnected, socket, handleQuerySync]);
@@ -270,7 +316,7 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     const onlineManagerUnsubscribe = onlineManager.subscribe(
       (isOnline: boolean) => {
         const currentSelectedDevice = selectedDeviceRef.current;
-        console.log(
+        logger.info(
           `${LOG_PREFIX} Online status changed: ${
             isOnline ? "ONLINE" : "OFFLINE"
           }`
@@ -279,7 +325,7 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
         if (isValidDevice(currentSelectedDevice)) {
           sendOnlineStatus(socket, currentSelectedDevice, isOnline);
         } else {
-          console.log(
+          logger.warn(
             `${LOG_PREFIX} Not sending online status - Invalid or no device selected`
           );
         }
@@ -287,7 +333,7 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     );
 
     return () => {
-      console.log(`${LOG_PREFIX} Cleaning up online manager listener`);
+      logger.info(`${LOG_PREFIX} Cleaning up online manager listener`);
       onlineManagerUnsubscribe();
     };
   }, [isConnected, socket]); // Depends on connection status and socket instance
@@ -344,7 +390,7 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     });
 
     return () => {
-      console.log(`${LOG_PREFIX} Cleaning up query cache listener`);
+      logger.info(`${LOG_PREFIX} Cleaning up query cache listener`);
       querySubscription();
     };
   }, [isConnected, socket, queryClient]); // Depends on connection, socket, and queryClient
