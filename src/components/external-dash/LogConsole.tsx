@@ -35,7 +35,7 @@ const LogEntryItem: React.FC<LogEntryItemProps> = ({ log }) => {
     <div className="py-1 font-mono text-xs border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
       <div className="flex items-start gap-2">
         {/* Timestamp */}
-        <span className="text-gray-500 whitespace-nowrap min-w-[5rem]">
+        <span className="text-gray-500 whitespace-nowrap min-w-[5rem] pl-2">
           {formatTimestamp(log.timestamp)}
         </span>
 
@@ -70,7 +70,7 @@ export const LogConsole: React.FC = () => {
   const clearLogs = useLogStore(
     (state: { clearLogs: () => void }) => state.clearLogs
   );
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [filter, setFilter] = useState<LogLevel | "all">("all");
 
   // Auto-scroll functionality

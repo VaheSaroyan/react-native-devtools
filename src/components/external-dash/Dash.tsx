@@ -76,6 +76,14 @@ export const Dash: React.FC<DashProps> = ({
   setTargetDevice,
 }) => {
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(label);
+    setTimeout(() => setCopiedText(null), 2000);
+  };
+
   const filteredDevices = showOfflineDevices
     ? allDevices
     : allDevices.filter((device) => {
@@ -293,19 +301,65 @@ export const Dash: React.FC<DashProps> = ({
                       <li>Restart your development devices</li>
                       <li className="flex items-start gap-1 flex-wrap">
                         <span>Please read the</span>
-                        <a
-                          href="https://github.com/LovesWorking/rn-better-dev-tools"
-                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                        <button
+                          onClick={() =>
+                            handleCopy(
+                              "https://github.com/LovesWorking/rn-better-dev-tools",
+                              "Documentation"
+                            )
+                          }
+                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer inline-flex items-center gap-1 relative group"
                         >
                           documentation
-                        </a>
+                          <svg
+                            className="w-3 h-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                          {copiedText === "Documentation" && (
+                            <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-900 text-xs text-gray-200 rounded shadow-lg border border-gray-700/50">
+                              Copied!
+                            </span>
+                          )}
+                        </button>
                         <span>or</span>
-                        <a
-                          href="https://github.com/LovesWorking/rn-better-dev-tools/issues"
-                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                        <button
+                          onClick={() =>
+                            handleCopy(
+                              "https://github.com/LovesWorking/rn-better-dev-tools/issues",
+                              "Issues"
+                            )
+                          }
+                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer inline-flex items-center gap-1 relative group"
                         >
                           create an issue
-                        </a>
+                          <svg
+                            className="w-3 h-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                          {copiedText === "Issues" && (
+                            <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-900 text-xs text-gray-200 rounded shadow-lg border border-gray-700/50">
+                              Copied!
+                            </span>
+                          )}
+                        </button>
                         <span>for help</span>
                       </li>
                     </ol>
@@ -318,9 +372,14 @@ export const Dash: React.FC<DashProps> = ({
 
         {/* Add LogConsole */}
         <LogConsole />
+        <div className="fixed bottom-16 right-4 z-50">
+          <ReactQueryDevtools
+            initialIsOpen={false}
+            position="bottom"
+            buttonPosition="relative"
+          />
+        </div>
       </div>
-
-      <ReactQueryDevtools initialIsOpen />
     </div>
   );
 };
