@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { User } from "./types/User";
 import "../../index.css";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
+import { useLogStore } from "./utils/logStore";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
@@ -77,6 +78,7 @@ export const Dash: React.FC<DashProps> = ({
 }) => {
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const { isEnabled, setIsEnabled, isVisible, setIsVisible } = useLogStore();
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -140,7 +142,7 @@ export const Dash: React.FC<DashProps> = ({
           {/* Right Section */}
           <div className="flex items-center gap-3">
             {/* Offline Toggle */}
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowOfflineDevices(!showOfflineDevices)}
                 className="group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-all duration-200 hover:bg-gray-800/40 border border-transparent hover:border-gray-700/50"
@@ -160,6 +162,29 @@ export const Dash: React.FC<DashProps> = ({
                 </div>
                 <span className="text-xs font-medium text-gray-400 group-hover:text-gray-300">
                   Show Offline Devices
+                </span>
+              </button>
+
+              {/* Logs Toggle */}
+              <button
+                onClick={() => setIsEnabled(!isEnabled)}
+                className="group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-all duration-200 hover:bg-gray-800/40 border border-transparent hover:border-gray-700/50"
+                aria-pressed={isEnabled}
+                role="switch"
+              >
+                <div
+                  className={`w-7 h-3.5 rounded-full flex items-center transition-all duration-200 ${
+                    isEnabled ? "bg-blue-500/80" : "bg-gray-700"
+                  }`}
+                >
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full bg-white shadow-sm transform transition-all duration-200 ${
+                      isEnabled ? "translate-x-4" : "translate-x-0.5"
+                    }`}
+                  />
+                </div>
+                <span className="text-xs font-medium text-gray-400 group-hover:text-gray-300">
+                  Enable Logs
                 </span>
               </button>
             </div>
@@ -362,8 +387,37 @@ export const Dash: React.FC<DashProps> = ({
           </div>
         </main>
 
-        {/* Add LogConsole */}
-        <LogConsole />
+        {/* Console Panel */}
+        <div className="fixed bottom-4 right-4 z-40">
+          {isVisible ? (
+            <div className="fixed inset-x-0 bottom-0 z-40 bg-gray-900 border-t border-gray-700/50 shadow-2xl transition-all duration-300 ease-in-out transform">
+              <LogConsole
+                onClose={() => setIsVisible(false)}
+                allDevices={allDevices}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsVisible(true)}
+              className="flex items-center justify-center w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-full shadow-lg border border-gray-700/50 transition-all duration-200 hover:scale-105"
+            >
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
+
         <div className="fixed bottom-16 right-4 z-50">
           <ReactQueryDevtools
             initialIsOpen={false}

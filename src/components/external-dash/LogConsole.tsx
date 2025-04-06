@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLogStore, LogEntry, LogLevel } from "./utils/logStore";
 import { PlatformIcon } from "./utils/platformUtils";
+import { User } from "./types/User";
 
 // Get log level color
 const getLogLevelColor = (level: LogLevel): string => {
@@ -65,13 +66,29 @@ const LogEntryItem: React.FC<LogEntryItemProps> = ({ log }) => {
   );
 };
 
-export const LogConsole: React.FC = () => {
+interface DeviceOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+  isOffline?: boolean;
+  platform?: string;
+}
+
+interface LogConsoleProps {
+  onClose: () => void;
+  allDevices: User[];
+}
+
+export const LogConsole: React.FC<LogConsoleProps> = ({
+  onClose,
+  allDevices,
+}) => {
   const logs = useLogStore((state: { logs: LogEntry[] }) => state.logs);
   const clearLogs = useLogStore(
     (state: { clearLogs: () => void }) => state.clearLogs
   );
-  const [isExpanded, setIsExpanded] = useState(false);
   const [filter, setFilter] = useState<LogLevel | "all">("all");
+  const [deviceFilter, setDeviceFilter] = useState<string>("all");
 
   // Auto-scroll functionality
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -79,70 +96,108 @@ export const LogConsole: React.FC = () => {
 
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = 0; // Scroll to top since we render newest logs first
+      scrollRef.current.scrollTop = 0;
     }
   }, [logs, autoScroll]);
 
-  // Filter logs based on level
-  const filteredLogs =
-    filter === "all"
-      ? logs
-      : logs.filter((log: LogEntry) => log.level === filter);
+  // Reset device filter if selected device is no longer available
+  useEffect(() => {
+    if (deviceFilter !== "all") {
+      const deviceExists = allDevices.some(
+        (device) => device.deviceId === deviceFilter
+      );
+      if (!deviceExists) {
+        setDeviceFilter("all");
+      }
+    }
+  }, [allDevices, deviceFilter]);
 
-  if (!isExpanded) {
-    return (
-      <div className="fixed bottom-0 right-0 w-full bg-gray-900 text-gray-200 border-t border-gray-700 shadow-lg z-20">
-        <div
-          className="px-4 py-2 flex justify-between items-center cursor-pointer hover:bg-gray-800"
-          onClick={() => setIsExpanded(true)}
-        >
-          <div className="flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-blue-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 9l4-4 4 4m0 6l-4 4-4-4"
-              />
-            </svg>
-            <span className="font-medium">Console ({logs.length} logs)</span>
-          </div>
-          <span className="text-gray-400 text-xs">Click to expand</span>
-        </div>
-      </div>
-    );
-  }
+  // Filter logs based on level and device
+  const filteredLogs = logs.filter((log: LogEntry) => {
+    const matchesLevel = filter === "all" || log.level === filter;
+    const matchesDevice =
+      deviceFilter === "all" || log.deviceId === deviceFilter;
+    return matchesLevel && matchesDevice;
+  });
+
+  // Generate device options based on available devices
+  const deviceOptions: DeviceOption[] = (() => {
+    if (allDevices?.length === 0) {
+      return [{ value: "all", label: "All Devices" }];
+    } else if (allDevices?.length === 1) {
+      // Only one device, no need for "All" option
+      const device = allDevices[0];
+      return [
+        {
+          value: device.deviceId,
+          label: device.deviceName || "Unknown Device",
+          isOffline: !device.isConnected,
+          platform: device.platform,
+        },
+      ];
+    } else {
+      // Multiple devices, include "All" option
+      return [
+        { value: "all", label: "All Devices" },
+        ...allDevices.map((device) => ({
+          value: device.deviceId,
+          label: device.deviceName || "Unknown Device",
+          isOffline: !device.isConnected,
+          platform: device.platform,
+        })),
+      ];
+    }
+  })();
 
   return (
-    <div className="fixed bottom-0 right-0 w-full bg-gray-900 text-gray-200 border-t border-gray-700 shadow-lg z-20">
+    <>
       {/* Header */}
-      <div className="px-4 py-2 flex justify-between items-center border-b border-gray-800 bg-gradient-to-r from-gray-900 to-gray-850">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700/50">
         <div className="flex items-center gap-2">
           <svg
-            className="w-5 h-5 text-blue-400"
-            fill="none"
+            className="w-4 h-4 text-gray-400"
             viewBox="0 0 24 24"
+            fill="none"
             stroke="currentColor"
+            strokeWidth="2"
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
+              d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <span className="font-medium">Console ({logs.length} logs)</span>
+          <span className="text-sm font-medium text-gray-200">
+            Console ({filteredLogs.length} logs)
+          </span>
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Filter controls */}
+          {/* Device Filter */}
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-gray-400">Filter:</span>
+            <span className="text-gray-400">Device:</span>
+            <select
+              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 min-w-[8rem]"
+              value={deviceFilter}
+              onChange={(e) => setDeviceFilter(e.target.value)}
+            >
+              {deviceOptions.map((option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                  className={option.isOffline ? "text-gray-500" : ""}
+                >
+                  {option.label}
+                  {option.platform && ` (${option.platform})`}
+                  {option.isOffline ? " (Offline)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Log Level Filter */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-gray-400">Level:</span>
             <select
               className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300"
               value={filter}
@@ -181,12 +236,24 @@ export const LogConsole: React.FC = () => {
             Clear
           </button>
 
-          {/* Collapse button */}
+          {/* Close button */}
           <button
-            onClick={() => setIsExpanded(false)}
-            className="text-xs px-3 py-1 bg-gray-800 text-gray-400 rounded hover:bg-gray-700"
+            onClick={onClose}
+            className="p-1 hover:bg-gray-800 rounded-md transition-colors duration-200"
           >
-            Collapse
+            <svg
+              className="w-4 h-4 text-gray-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </button>
         </div>
       </div>
@@ -194,7 +261,7 @@ export const LogConsole: React.FC = () => {
       {/* Log entries container */}
       <div
         ref={scrollRef}
-        className="h-64 overflow-y-auto flex flex-col-reverse" // Flex-col-reverse to show newest at top
+        className="h-80 overflow-y-auto flex flex-col-reverse"
       >
         {filteredLogs.length > 0 ? (
           filteredLogs.map((log: LogEntry) => (
@@ -206,6 +273,6 @@ export const LogConsole: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
