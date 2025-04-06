@@ -1,8 +1,5 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
-import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
-import { MakerDeb } from "@electron-forge/maker-deb";
-import { MakerRpm } from "@electron-forge/maker-rpm";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
@@ -15,6 +12,14 @@ const config: ForgeConfig = {
     appBundleId: "com.lovesworking.rn-dev-tools",
     appCategoryType: "public.app-category.developer-tools",
     executableName: "React Native DevTools",
+    osxSign: {}, // object must exist even if empty
+    // The osxSign config comes with defaults that work out of the box in most cases, so we recommend you start with an empty configuration object.
+    // For a full list of configuration options, see  https://js.electronforge.io/modules/_electron_forge_shared_types.InternalOptions.html#OsxSignOptions
+    osxNotarize: {
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_PASSWORD,
+      teamId: process.env.APPLE_TEAM_ID,
+    },
   },
   rebuildConfig: {},
   makers: [
