@@ -36,9 +36,8 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          # Write certificate to file
-          echo "$MACOS_CERTIFICATE" > certificate.txt
-          base64 --decode certificate.txt > certificate.p12
+          # Write certificate to file and decode it
+          echo "$MACOS_CERTIFICATE" | base64 -D > certificate.p12
 
           # Create keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
