@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 import { startServer } from "./server";
@@ -43,15 +43,28 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
-  // Start the Socket.IO server
-  socketServer = startServer();
-  console.log("Simple Socket.IO server started");
+  try {
+    // Start the Socket.IO server
+    socketServer = startServer();
+    console.log("Simple Socket.IO server started");
 
-  // Setup auto-updater
-  setupAutoUpdater();
+    // Setup auto-updater
+    setupAutoUpdater();
 
-  // Create the application window
-  createWindow();
+    // Create the application window
+    createWindow();
+  } catch (error) {
+    console.error("Failed to start application:", error);
+
+    // Show error dialog
+    dialog.showErrorBox(
+      "Application Error",
+      `Failed to start the application: ${error.message}\n\nThe application will now exit.`
+    );
+
+    // Exit the app with error code
+    app.exit(1);
+  }
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
