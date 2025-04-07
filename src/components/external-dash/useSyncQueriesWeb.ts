@@ -61,6 +61,32 @@ export interface OnlineManagerMessage {
 const LOG_PREFIX = "[DASHBOARD]";
 const INVALID_DEVICE_IDS = ["No devices available", "Please select a user"];
 
+// Logger metadata types
+interface BaseLogMetadata extends Partial<User> {
+  queriesCount?: number;
+  mutationsCount?: number;
+  status?: "ONLINE" | "OFFLINE";
+  connectionStatus?: "CONNECTED" | "DISCONNECTED";
+  socketExists?: boolean;
+  action?: QueryActions;
+  queryHash?: string;
+  queryKey?: QueryKey;
+  validationError?: string;
+  previousDevice?: {
+    deviceName: string;
+    deviceId: string;
+  };
+  newDevice?: {
+    deviceName: string;
+    deviceId: string;
+    platform?: string;
+  };
+  // Additional fields for better debugging
+  currentSelectedDeviceId?: string;
+  currentSelectedDeviceName?: string;
+  eventType?: string;
+}
+
 // --- Helper Functions ---
 
 /** Checks if the provided device is valid for communication. */
@@ -74,15 +100,21 @@ const hydrateState = (
   message: SyncMessage,
   deviceName: string
 ) => {
+  const metadata: BaseLogMetadata = {
+    deviceName,
+    deviceId: message.persistentDeviceId,
+    queriesCount: message.state.queries.length,
+    mutationsCount: message.state.mutations.length,
+  };
   logger.info(
-    `${LOG_PREFIX} Hydrating QueryClient with state from: ${deviceName}`,
-    { deviceName, deviceId: message.persistentDeviceId }
+    `${LOG_PREFIX} Hydrating state from device ${deviceName} `,
+    metadata
   );
 
   Hydrate(queryClient, message.state, {
     defaultOptions: {
       queries: {
-        staleTime: Infinity, // Prevent automatic refetching
+        staleTime: Infinity,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
     },
@@ -93,7 +125,7 @@ const hydrateState = (
 const requestInitialState = (socket: Socket, targetDevice: User) => {
   const deviceLogger = createDeviceLogger(targetDevice);
   deviceLogger.info(
-    `${LOG_PREFIX} Requesting initial state from: ${targetDevice.deviceName}`
+    `${LOG_PREFIX} Requesting initial state from device: ${targetDevice.deviceName} (${targetDevice.deviceId})`
   );
 
   const message: QueryRequestInitialStateMessage = {
@@ -110,8 +142,9 @@ const sendQueryAction = (
   query: { queryHash: string; queryKey: QueryKey; state: { data: unknown } }
 ) => {
   const deviceLogger = createDeviceLogger(targetDevice);
+  // Note: Since deviceLogger already has device context, we don't pass metadata as second param
   deviceLogger.info(
-    `${LOG_PREFIX} Forwarding query action: ${action} for query hash: ${query.queryHash}`
+    `${LOG_PREFIX} Forwarding query action '${action}' to device: ${targetDevice.deviceName}`
   );
 
   const message: QueryActionMessage = {
@@ -119,7 +152,7 @@ const sendQueryAction = (
     deviceId: targetDevice.deviceId,
     queryHash: query.queryHash,
     queryKey: query.queryKey,
-    data: query.state.data, // Send current data state
+    data: query.state.data,
   };
   socket.emit("query-action", message);
 };
@@ -131,8 +164,10 @@ const sendOnlineStatus = (
   isOnline: boolean
 ) => {
   const deviceLogger = createDeviceLogger(targetDevice);
+  const statusText = isOnline ? "ONLINE" : "OFFLINE";
+
   deviceLogger.info(
-    `${LOG_PREFIX} Sending online status (${isOnline ? "ONLINE" : "OFFLINE"})`
+    `${LOG_PREFIX} Sending ${statusText} status update to device: ${targetDevice.deviceName}`
   );
 
   const message: OnlineManagerMessage = {
@@ -143,7 +178,9 @@ const sendOnlineStatus = (
   };
   socket.emit("online-manager", message);
 
-  deviceLogger.debug(`${LOG_PREFIX} Online status message sent`);
+  deviceLogger.debug(
+    `${LOG_PREFIX} Online status message sent successfully to ${targetDevice.deviceName}`
+  );
 };
 
 interface Props {
@@ -177,18 +214,27 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
       }
 
       const device = getDeviceFromDeviceId(message.persistentDeviceId);
-      const deviceName = device?.deviceName;
+      const deviceName = device?.deviceName || "Unknown Device";
 
+      const metadata: BaseLogMetadata = {
+        deviceName,
+        deviceId: message.persistentDeviceId,
+        platform: device?.platform,
+        queriesCount: message.state.queries.length,
+        mutationsCount: message.state.mutations.length,
+      };
       logger.info(
-        `${LOG_PREFIX} Received query sync from: ${deviceName} (${message.type})`,
-        {
-          deviceName,
-          deviceId: message.persistentDeviceId,
-          platform: device?.platform,
-        }
+        `${LOG_PREFIX} Received query sync from device: ${deviceName} `,
+        metadata
       );
 
-      if (message.type !== "dehydrated-state") return;
+      if (message.type !== "dehydrated-state") {
+        logger.warn(
+          `${LOG_PREFIX} Received unexpected message type: ${message.type} from ${deviceName}`,
+          metadata
+        );
+        return;
+      }
 
       const currentSelectedDevice = selectedDeviceRef.current;
       const isFromSelectedDevice =
@@ -196,39 +242,35 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
         message.persistentDeviceId === currentSelectedDevice.deviceId;
 
       if (isFromSelectedDevice) {
-        logger.info(
-          `${LOG_PREFIX} Processing sync from: ${deviceName}, Queries: ${message.state.queries.length}, Mutations: ${message.state.mutations.length}`,
-          {
+        if (message.isOnlineManagerOnline !== onlineManager.isOnline()) {
+          const onlineMetadata: BaseLogMetadata = {
+            status: message.isOnlineManagerOnline ? "ONLINE" : "OFFLINE",
             deviceName,
             deviceId: message.persistentDeviceId,
             platform: device?.platform,
-          }
-        );
-
-        // Sync online manager state if needed
-        if (message.isOnlineManagerOnline !== onlineManager.isOnline()) {
+          };
+          const statusText = message.isOnlineManagerOnline
+            ? "ONLINE"
+            : "OFFLINE";
           logger.info(
-            `${LOG_PREFIX} Setting online status to match device: ${
-              message.isOnlineManagerOnline ? "ONLINE" : "OFFLINE"
-            }`,
-            {
-              deviceName,
-              deviceId: message.persistentDeviceId,
-              platform: device?.platform,
-            }
+            `${LOG_PREFIX} Syncing online status with device ${deviceName}: Setting dashboard to ${statusText}`,
+            onlineMetadata
           );
           onlineManager.setOnline(message.isOnlineManagerOnline);
         }
 
         hydrateState(queryClient, message, deviceName);
       } else {
+        const metadata: BaseLogMetadata = {
+          deviceId: message.persistentDeviceId,
+          deviceName,
+          platform: device?.platform,
+          currentSelectedDeviceId: currentSelectedDevice.deviceId,
+          currentSelectedDeviceName: currentSelectedDevice.deviceName,
+        };
         logger.debug(
-          `${LOG_PREFIX} Ignoring sync from: ${deviceName} # ${message.persistentDeviceId} - not selected device ID # (${currentSelectedDevice.deviceId})`,
-          {
-            deviceName,
-            deviceId: message.persistentDeviceId,
-            platform: device?.platform,
-          }
+          `${LOG_PREFIX} Ignoring sync from non-selected device: ${deviceName} (selected is ${currentSelectedDevice.deviceName})`,
+          metadata
         );
       }
     },
@@ -243,13 +285,17 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     selectedDeviceRef.current = targetDevice; // Update the ref immediately
 
     if (!isConnected || !socket) {
+      const metadata: BaseLogMetadata = {
+        status: isConnected ? "ONLINE" : "OFFLINE",
+        deviceName: targetDevice.deviceName,
+        deviceId: targetDevice.deviceId,
+        platform: targetDevice.platform,
+        connectionStatus: isConnected ? "CONNECTED" : "DISCONNECTED",
+        socketExists: !!socket,
+      };
       logger.warn(
-        `${LOG_PREFIX} Device selection changed, but not connected to server.`,
-        {
-          deviceName: targetDevice.deviceName,
-          deviceId: targetDevice.deviceId,
-          platform: targetDevice.platform,
-        }
+        `${LOG_PREFIX} Device selection changed to ${targetDevice.deviceName} but connection unavailable`,
+        metadata
       );
       return;
     }
@@ -259,52 +305,70 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
       return;
     }
 
-    logger.info(
-      `${LOG_PREFIX} Device selection changed to: ${targetDevice.deviceName} (${targetDevice.deviceId})`,
-      {
+    const metadata: BaseLogMetadata = {
+      previousDevice: {
+        deviceName: previousDevice.deviceName,
+        deviceId: previousDevice.deviceId,
+      },
+      newDevice: {
         deviceName: targetDevice.deviceName,
         deviceId: targetDevice.deviceId,
         platform: targetDevice.platform,
-      }
+      },
+    };
+    logger.info(
+      `${LOG_PREFIX} Device selection changed from '${previousDevice.deviceName}' to '${targetDevice.deviceName}'`,
+      metadata
     );
 
     if (isValidDevice(targetDevice)) {
+      const stateMetadata: BaseLogMetadata = {
+        deviceName: targetDevice.deviceName,
+        deviceId: targetDevice.deviceId,
+        platform: targetDevice.platform,
+      };
       logger.info(
-        `${LOG_PREFIX} Clearing query cache before requesting new state`,
-        {
-          deviceName: targetDevice.deviceName,
-          deviceId: targetDevice.deviceId,
-          platform: targetDevice.platform,
-        }
+        `${LOG_PREFIX} Clearing dashboard query cache and requesting fresh state from '${targetDevice.deviceName}'`,
+        stateMetadata
       );
-      queryClient.clear(); // Clear cache for the new device
+      queryClient.clear();
       requestInitialState(socket, targetDevice);
     } else {
+      const errorMetadata: BaseLogMetadata = {
+        deviceName: targetDevice.deviceName,
+        deviceId: targetDevice.deviceId,
+        platform: targetDevice.platform,
+        validationError: "Invalid device ID",
+      };
       logger.warn(
-        `${LOG_PREFIX} Not requesting initial state - Invalid device selection: ${targetDevice.deviceName} (${targetDevice.deviceId})`,
-        {
-          deviceName: targetDevice.deviceName,
-          deviceId: targetDevice.deviceId,
-          platform: targetDevice.platform,
-        }
+        `${LOG_PREFIX} Invalid device selection '${targetDevice.deviceName}' - skipping state request`,
+        errorMetadata
       );
-      // Optionally clear cache even for invalid selection if desired
-      // queryClient.clear();
     }
   }, [targetDevice, isConnected, socket, queryClient]);
 
   // Effect to set up the main query-sync listener
   useEffect(() => {
     if (!isConnected || !socket) {
-      logger.warn(`${LOG_PREFIX} Cannot set up listeners: Not connected.`);
+      const metadata: BaseLogMetadata = {
+        status: "OFFLINE",
+        connectionStatus: isConnected ? "CONNECTED" : "DISCONNECTED",
+        socketExists: !!socket,
+      };
+      logger.warn(
+        `${LOG_PREFIX} Cannot setup query-sync listeners - no socket connection available`,
+        metadata
+      );
       return;
     }
 
-    logger.info(`${LOG_PREFIX} Setting up query-sync listener`);
+    logger.info(
+      `${LOG_PREFIX} Setting up query-sync event listener for incoming device updates`
+    );
     socket.on("query-sync", handleQuerySync);
 
     return () => {
-      logger.info(`${LOG_PREFIX} Cleaning up query-sync listener`);
+      logger.info(`${LOG_PREFIX} Cleaning up query-sync event listener`);
       socket.off("query-sync", handleQuerySync);
     };
   }, [isConnected, socket, handleQuerySync]);
@@ -316,24 +380,36 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     const onlineManagerUnsubscribe = onlineManager.subscribe(
       (isOnline: boolean) => {
         const currentSelectedDevice = selectedDeviceRef.current;
+        const statusText = isOnline ? "ONLINE" : "OFFLINE";
+        const metadata: BaseLogMetadata = {
+          status: statusText,
+          deviceName: currentSelectedDevice?.deviceName,
+          deviceId: currentSelectedDevice?.deviceId,
+        };
         logger.info(
-          `${LOG_PREFIX} Online status changed: ${
-            isOnline ? "ONLINE" : "OFFLINE"
-          }`
+          `${LOG_PREFIX} Dashboard online status changed to ${statusText} - syncing with device`,
+          metadata
         );
 
         if (isValidDevice(currentSelectedDevice)) {
           sendOnlineStatus(socket, currentSelectedDevice, isOnline);
         } else {
+          const errorMetadata: BaseLogMetadata = {
+            status: statusText,
+            deviceId: currentSelectedDevice?.deviceId,
+            deviceName: currentSelectedDevice?.deviceName,
+            validationError: "No valid device selected",
+          };
           logger.warn(
-            `${LOG_PREFIX} Not sending online status - Invalid or no device selected`
+            `${LOG_PREFIX} Cannot sync ${statusText} status - no valid device selected`,
+            errorMetadata
           );
         }
       }
     );
 
     return () => {
-      logger.info(`${LOG_PREFIX} Cleaning up online manager listener`);
+      logger.info(`${LOG_PREFIX} Cleaning up online manager subscription`);
       onlineManagerUnsubscribe();
     };
   }, [isConnected, socket]); // Depends on connection status and socket instance
@@ -343,16 +419,37 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     if (!isConnected || !socket) return;
 
     const queryCache = queryClient.getQueryCache();
+    logger.info(
+      `${LOG_PREFIX} Setting up query cache listener to forward actions to device`
+    );
+
     const querySubscription = queryCache.subscribe((event) => {
       const currentSelectedDevice = selectedDeviceRef.current;
 
       if (!isValidDevice(currentSelectedDevice)) {
+        const logMetadata: BaseLogMetadata = {
+          eventType: event.type,
+          deviceId: currentSelectedDevice?.deviceId,
+          deviceName: currentSelectedDevice?.deviceName,
+        };
+        logger.debug(
+          `${LOG_PREFIX} Query cache event ignored - no valid device selected`,
+          logMetadata
+        );
         return; // Don't forward actions if no valid device is selected
       }
 
       // Process query cache events
       if (event.type === "updated") {
         const actionType = event.action.type as QueryActions;
+        const queryLogMetadata: BaseLogMetadata = {
+          queryHash: event.query.queryHash,
+          queryKey: event.query.queryKey,
+          deviceName: currentSelectedDevice.deviceName,
+          deviceId: currentSelectedDevice.deviceId,
+          action: actionType,
+        };
+
         switch (actionType) {
           // Actions to forward directly
           case "ACTION-REFETCH":
@@ -363,6 +460,10 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
           case "ACTION-REMOVE":
           case "ACTION-TRIGGER-LOADING":
           case "ACTION-RESTORE-LOADING":
+            logger.debug(
+              `${LOG_PREFIX} Forwarding ${actionType} to device: ${currentSelectedDevice.deviceName}`,
+              queryLogMetadata
+            );
             sendQueryAction(
               socket,
               currentSelectedDevice,
@@ -376,6 +477,10 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error This 'manual' property might exist based on usage pattern
             if (event.action.manual) {
+              logger.debug(
+                `${LOG_PREFIX} Forwarding manual data update to device: ${currentSelectedDevice.deviceName}`,
+                queryLogMetadata
+              );
               sendQueryAction(
                 socket,
                 currentSelectedDevice,
@@ -390,7 +495,7 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     });
 
     return () => {
-      logger.info(`${LOG_PREFIX} Cleaning up query cache listener`);
+      logger.info(`${LOG_PREFIX} Cleaning up query cache subscription`);
       querySubscription();
     };
   }, [isConnected, socket, queryClient]); // Depends on connection, socket, and queryClient

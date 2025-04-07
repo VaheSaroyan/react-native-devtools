@@ -385,7 +385,18 @@ export const LogConsole: React.FC<LogConsoleProps> = ({
       {/* Log entries container */}
       <div
         ref={scrollRef}
-        className="h-80 overflow-y-auto flex flex-col-reverse"
+        className="h-80 overflow-y-auto flex flex-col-reverse select-text"
+        onKeyDown={(e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+            e.preventDefault();
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(e.currentTarget);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+        }}
+        tabIndex={0}
       >
         {filteredLogs.length > 0 ? (
           filteredLogs.map((log: LogEntry) => (
