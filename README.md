@@ -2,7 +2,7 @@
 
 Enhanced developer tools for React Native applications, currently supporting React Query DevTools with a beautiful native interface.
 
-![image](https://github.com/user-attachments/assets/53786069-8140-48ef-8f76-9db350c2dca1)
+ ![image](https://github.com/user-attachments/assets/39e5c417-be4d-46af-8138-3589d73fce9f)
 
 
 ## ✨ Features
