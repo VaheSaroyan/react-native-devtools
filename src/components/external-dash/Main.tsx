@@ -6,10 +6,10 @@ import { User } from "./types/User";
 
 export default function Main() {
   const [targetDevice, setTargetDevice] = useState<User>({
-    deviceId: "Please select a user",
-    deviceName: "Please select a user",
+    deviceId: "Please select a device",
+    deviceName: "Please select a device",
     isConnected: false,
-    id: "Please select a user",
+    id: "Please select a device",
   });
   const { allDevices, isDashboardConnected } = useConnectedUsers();
   useSyncQueriesWeb({ targetDevice, allDevices });

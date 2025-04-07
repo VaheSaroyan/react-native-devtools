@@ -7,8 +7,9 @@ import { useLogStore } from "./utils/logStore";
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
 import { LogConsole } from "./LogConsole";
+import { NoDevicesConnected } from "./NoDevicesConnected";
 
-const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
+export const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
   const normalizedPlatform = platform?.toLowerCase() || "";
 
   switch (normalizedPlatform) {
@@ -46,7 +47,7 @@ const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
   }
 };
 
-const getPlatformColor = (platform: string): string => {
+export const getPlatformColor = (platform: string): string => {
   const normalizedPlatform = platform?.toLowerCase() || "";
   switch (normalizedPlatform) {
     case "ios":
@@ -60,6 +61,23 @@ const getPlatformColor = (platform: string): string => {
       return "text-purple-300";
     default:
       return "text-gray-300";
+  }
+};
+
+export const getPlatformBgColor = (platform: string): string => {
+  const normalizedPlatform = platform?.toLowerCase() || "";
+  switch (normalizedPlatform) {
+    case "ios":
+      return "bg-blue-900/30 text-blue-200";
+    case "android":
+      return "bg-green-900/30 text-green-200";
+    case "web":
+      return "bg-cyan-900/30 text-cyan-200";
+    case "tv":
+    case "tvos":
+      return "bg-purple-900/30 text-purple-200";
+    default:
+      return "bg-gray-800/60 text-gray-300";
   }
 };
 
@@ -77,14 +95,7 @@ export const Dash: React.FC<DashProps> = ({
   setTargetDevice,
 }) => {
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
   const { isEnabled, setIsEnabled, isVisible, setIsVisible } = useLogStore();
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedText(label);
-    setTimeout(() => setCopiedText(null), 2000);
-  };
 
   const filteredDevices = showOfflineDevices
     ? allDevices
@@ -104,33 +115,29 @@ export const Dash: React.FC<DashProps> = ({
   }, [setTargetDevice, filteredDevices, targetDevice]);
 
   return (
-    <div>
-      <div className="flex flex-col w-full h-screen overflow-hidden bg-gray-900 text-gray-200">
-        <header className="w-full px-3 py-2 border-b border-gray-700/50 flex justify-between items-center flex-shrink-0 backdrop-blur-md bg-gradient-to-b from-gray-900/95 to-gray-900/90 sticky top-0 z-10 shadow-lg">
-          <div className="flex items-center gap-3">
+    <div className="font-sf-pro">
+      <div className="flex flex-col w-full h-screen overflow-hidden bg-[#0A0A0C] text-white">
+        <header className="w-full px-5 py-4 border-b border-[#2D2D2F]/50 flex justify-between items-center flex-shrink-0 bg-[#0A0A0C]/95 sticky top-0 z-20 shadow-[0_0.5rem_1rem_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-4">
             {/* Connection Status */}
             <div
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-md bg-opacity-60 border shadow-sm transition-colors duration-200 ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full  ${
                 isDashboardConnected
-                  ? "bg-green-500/10 border-green-500/20"
-                  : "bg-red-500/10 border-red-500/20"
+                  ? "bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/20 shadow-[0_0_10px_rgba(74,222,128,0.1)]"
+                  : "bg-gradient-to-r from-red-500/10 to-red-500/5 border border-red-500/20 shadow-[0_0_10px_rgba(248,113,113,0.1)]"
               }`}
             >
-              <div className="relative">
+              <div className="relative flex items-center justify-center">
                 <div
                   className={`w-2 h-2 rounded-full ${
                     isDashboardConnected ? "bg-green-400" : "bg-red-400"
                   }`}
                 >
-                  <div
-                    className={`absolute inset-0 rounded-full ${
-                      isDashboardConnected ? "bg-green-400" : "bg-red-400"
-                    } animate-ping opacity-75`}
-                  ></div>
+                  {/* Simple dot with no animations */}
                 </div>
               </div>
               <span
-                className={`text-xs font-medium ${
+                className={`text-xs font-medium tracking-wide ${
                   isDashboardConnected ? "text-green-300" : "text-red-300"
                 }`}
               >
@@ -140,27 +147,27 @@ export const Dash: React.FC<DashProps> = ({
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             {/* Offline Toggle */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowOfflineDevices(!showOfflineDevices)}
-                className="group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-all duration-200 hover:bg-gray-800/40 border border-transparent hover:border-gray-700/50"
+                className="group flex items-center gap-3 px-3 py-1.5 rounded-full transition-all duration-500 ease-out hover:bg-[#1D1D1F]/40 border border-transparent hover:border-[#2D2D2F]/70"
                 aria-pressed={showOfflineDevices}
                 role="switch"
               >
                 <div
-                  className={`w-7 h-3.5 rounded-full flex items-center transition-all duration-200 ${
-                    showOfflineDevices ? "bg-blue-500/80" : "bg-gray-700"
+                  className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-all duration-500 ease-out ${
+                    showOfflineDevices ? "bg-blue-500" : "bg-[#3D3D3F]"
                   }`}
                 >
                   <div
-                    className={`w-2.5 h-2.5 rounded-full bg-white shadow-sm transform transition-all duration-200 ${
-                      showOfflineDevices ? "translate-x-4" : "translate-x-0.5"
+                    className={`w-3 h-3 rounded-full bg-white shadow-md transform transition-all duration-500 ease-out ${
+                      showOfflineDevices ? "translate-x-4" : "translate-x-0"
                     }`}
                   />
                 </div>
-                <span className="text-xs font-medium text-gray-400 group-hover:text-gray-300">
+                <span className="text-xs font-medium text-[#A1A1A6] group-hover:text-[#F5F5F7] transition-colors duration-300">
                   Show Offline Devices
                 </span>
               </button>
@@ -168,29 +175,29 @@ export const Dash: React.FC<DashProps> = ({
               {/* Logs Toggle */}
               <button
                 onClick={() => setIsEnabled(!isEnabled)}
-                className="group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md transition-all duration-200 hover:bg-gray-800/40 border border-transparent hover:border-gray-700/50"
+                className="group flex items-center gap-3 px-3 py-1.5 rounded-full transition-all duration-500 ease-out hover:bg-[#1D1D1F]/40 border border-transparent hover:border-[#2D2D2F]/70"
                 aria-pressed={isEnabled}
                 role="switch"
               >
                 <div
-                  className={`w-7 h-3.5 rounded-full flex items-center transition-all duration-200 ${
-                    isEnabled ? "bg-blue-500/80" : "bg-gray-700"
+                  className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-all duration-500 ease-out ${
+                    isEnabled ? "bg-blue-500" : "bg-[#3D3D3F]"
                   }`}
                 >
                   <div
-                    className={`w-2.5 h-2.5 rounded-full bg-white shadow-sm transform transition-all duration-200 ${
-                      isEnabled ? "translate-x-4" : "translate-x-0.5"
+                    className={`w-3 h-3 rounded-full bg-white shadow-md transform transition-all duration-500 ease-out ${
+                      isEnabled ? "translate-x-4" : "translate-x-0"
                     }`}
                   />
                 </div>
-                <span className="text-xs font-medium text-gray-400 group-hover:text-gray-300">
+                <span className="text-xs font-medium text-[#A1A1A6] group-hover:text-[#F5F5F7] transition-colors duration-300">
                   Enable Logs
                 </span>
               </button>
             </div>
 
             {/* Separator */}
-            <div className="h-4 w-px bg-gray-700/50"></div>
+            <div className="h-5 w-px bg-[#2D2D2F]/70"></div>
 
             {/* Device Selection */}
             <div className="flex-shrink-0">
@@ -203,32 +210,32 @@ export const Dash: React.FC<DashProps> = ({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 pb-72">
+        <main className="flex-1 overflow-y-auto p-6 pb-72 bg-gradient-to-b from-[#0A0A0C] to-[#121214]">
           <div className="px-2 max-w-3xl mx-auto">
             {/* Device count and stats */}
             {filteredDevices.length > 0 ? (
               <>
-                <div className="mb-3 bg-gradient-to-r from-gray-800/95 to-gray-800/90 border border-gray-700/60 rounded-xl p-3 shadow-lg backdrop-blur-sm">
+                <div className="mb-6 bg-[#1A1A1C] border border-[#2D2D2F]/60 rounded-2xl p-5 shadow-[0_0.5rem_1.5rem_rgba(0,0,0,0.25)] transition-all duration-500 ease-out hover:shadow-[0_0.5rem_2rem_rgba(0,0,0,0.35)]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="text-sm flex items-center gap-2 px-2.5 py-1 bg-gray-900/50 rounded-lg border border-gray-700/50">
+                      <div className="text-sm flex items-center gap-2 px-3.5 py-1.5 bg-[#0A0A0C]/80 rounded-full border border-[#2D2D2F]/50 shadow-inner">
                         <span className="text-blue-300 font-mono bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 text-xs">
                           {filteredDevices.length}
                         </span>
-                        <span className="text-gray-300 font-medium">
+                        <span className="text-white font-medium">
                           {filteredDevices.length === 1 ? "device" : "devices"}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm">
-                        <div className="flex items-center gap-2 px-2.5 py-1 bg-green-900/20 rounded-lg border border-green-900/30">
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                        <div className="flex items-center gap-2 px-3.5 py-1.5 bg-green-900/20 rounded-full border border-green-900/30 shadow-inner">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                           <span className="text-green-300 font-medium">
                             {allDevices.filter((d) => d.isConnected).length}{" "}
                             online
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1 bg-red-900/20 rounded-lg border border-red-900/30">
+                        <div className="flex items-center gap-2 px-3.5 py-1.5 bg-red-900/20 rounded-full border border-red-900/30 shadow-inner">
                           <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
                           <span className="text-red-300 font-medium">
                             {allDevices.filter((d) => !d.isConnected).length}{" "}
@@ -239,7 +246,7 @@ export const Dash: React.FC<DashProps> = ({
                     </div>
 
                     {targetDevice && (
-                      <div className="flex items-center gap-2.5 px-3 py-1.5 bg-gray-900/50 rounded-lg border border-gray-700/50 hover:border-gray-600/70 transition-all duration-200 shadow-sm">
+                      <div className="flex items-center gap-3 px-4 py-2 bg-[#0A0A0C]/60 rounded-full border border-[#2D2D2F]/50 shadow-sm ">
                         <div className="flex items-center gap-2">
                           <div
                             className={`flex items-center gap-2 ${
@@ -251,11 +258,11 @@ export const Dash: React.FC<DashProps> = ({
                             }`}
                           >
                             <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
-                            <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                            <span className="text-xs font-medium uppercase tracking-wider text-[#A1A1A6]">
                               Target
                             </span>
                           </div>
-                          <span className="text-sm font-medium text-gray-200">
+                          <span className="text-sm font-medium text-white">
                             {targetDevice.deviceId === "All"
                               ? "All Devices"
                               : targetDevice.deviceName}
@@ -277,112 +284,21 @@ export const Dash: React.FC<DashProps> = ({
                 </div>
 
                 {/* Device List */}
-                {filteredDevices.map((device) => (
-                  <UserInfo
-                    key={device.id}
-                    userData={device}
-                    isTargeted={
-                      targetDevice.deviceId === "All" ||
-                      targetDevice.deviceId === device.deviceId
-                    }
-                  />
-                ))}
+                <div className="space-y-5 transition-all duration-300">
+                  {filteredDevices.map((device) => (
+                    <UserInfo
+                      key={device.id}
+                      userData={device}
+                      isTargeted={
+                        targetDevice.deviceId === "All" ||
+                        targetDevice.deviceId === device.deviceId
+                      }
+                    />
+                  ))}
+                </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center">
-                <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700/50 backdrop-blur-sm max-w-md">
-                  <svg
-                    className="w-12 h-12 text-gray-500 mx-auto mb-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-gray-200 mb-2">
-                    No Devices Connected
-                  </h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                    Please ensure this app is running and then start or restart
-                    your devices to establish a connection.
-                  </p>
-                  <div className="text-xs text-gray-500 bg-gray-800/50 rounded-lg p-3 border border-gray-700/30">
-                    <p className="font-medium mb-1">Troubleshooting steps:</p>
-                    <ol className="list-decimal list-inside space-y-1 text-left">
-                      <li>Verify the app is running</li>
-                      <li>Restart your development devices</li>
-                      <li className="flex items-start gap-1 flex-wrap">
-                        <span>Please read the</span>
-                        <button
-                          onClick={() =>
-                            handleCopy(
-                              "https://github.com/LovesWorking/rn-better-dev-tools",
-                              "Documentation"
-                            )
-                          }
-                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer inline-flex items-center gap-1 relative group"
-                        >
-                          documentation
-                          <svg
-                            className="w-3 h-3"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {copiedText === "Documentation" && (
-                            <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-900 text-xs text-gray-200 rounded shadow-lg border border-gray-700/50">
-                              Copied!
-                            </span>
-                          )}
-                        </button>
-                        <span>or</span>
-                        <button
-                          onClick={() =>
-                            handleCopy(
-                              "https://github.com/LovesWorking/rn-better-dev-tools/issues",
-                              "Issues"
-                            )
-                          }
-                          className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer inline-flex items-center gap-1 relative group"
-                        >
-                          create an issue
-                          <svg
-                            className="w-3 h-3"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {copiedText === "Issues" && (
-                            <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-900 text-xs text-gray-200 rounded shadow-lg border border-gray-700/50">
-                              Copied!
-                            </span>
-                          )}
-                        </button>
-                        <span>for help</span>
-                      </li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
+              <NoDevicesConnected />
             )}
           </div>
         </main>
@@ -390,7 +306,7 @@ export const Dash: React.FC<DashProps> = ({
         {/* Console Panel */}
         <div className="fixed bottom-4 right-4 z-40">
           {isVisible ? (
-            <div className="fixed inset-x-0 bottom-0 z-40 bg-gray-900 border-t border-gray-700/50 shadow-2xl transition-all duration-300 ease-in-out transform">
+            <div className="fixed inset-x-0 bottom-0 z-40 bg-[#0A0A0C] border-t border-[#2D2D2F]/50 shadow-2xl transition-all duration-500 ease-out transform animate-slideUpFade">
               <LogConsole
                 onClose={() => setIsVisible(false)}
                 allDevices={allDevices}
@@ -399,7 +315,7 @@ export const Dash: React.FC<DashProps> = ({
           ) : (
             <button
               onClick={() => setIsVisible(true)}
-              className="flex items-center justify-center w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-full shadow-lg border border-gray-700/50 transition-all duration-200 hover:scale-105"
+              className="flex items-center justify-center w-12 h-12 bg-[#1A1A1C] hover:bg-[#2D2D2F] text-[#F5F5F7] rounded-full shadow-[0_0.5rem_1rem_rgba(0,0,0,0.2)] border border-[#2D2D2F]/50 transition-all duration-500 ease-out hover:scale-110 hover:shadow-[0_0.5rem_1.5rem_rgba(59,130,246,0.2)]"
             >
               <svg
                 className="w-5 h-5"
@@ -418,7 +334,7 @@ export const Dash: React.FC<DashProps> = ({
           )}
         </div>
 
-        <div className="fixed bottom-16 right-4 z-50">
+        <div className="fixed bottom-20 right-4 z-50">
           <ReactQueryDevtools
             initialIsOpen={false}
             position="bottom"

@@ -22,34 +22,39 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
   const extraDeviceInfo = userData.extraDeviceInfo
     ? JSON.parse(userData.extraDeviceInfo)
     : {};
+
   return (
-    <div className="relative isolate w-full mb-4">
+    <div className="relative isolate w-full">
       {isTargeted && (
         <>
           {/* Extended glow effect - furthest back */}
           <div
-            className="absolute -inset-[3px] bg-gradient-to-r from-red-500/20 via-violet-500/20 to-blue-500/20 rounded-xl blur-xl animate-gradient"
+            className="absolute -inset-[3px] bg-gradient-to-r from-red-500/10 via-violet-500/10 to-blue-500/10 rounded-2xl blur-xl animate-gradient opacity-70"
             aria-hidden="true"
           />
 
           {/* Outer glow effect */}
           <div
-            className="absolute -inset-[2px] bg-gradient-to-r from-red-500/50 via-violet-500/50 to-blue-500/50 rounded-xl blur-md animate-gradient"
+            className="absolute -inset-[2px] bg-gradient-to-r from-red-500/30 via-violet-500/30 to-blue-500/30 rounded-2xl blur-md animate-gradient"
             aria-hidden="true"
           />
 
           {/* Primary glowing border */}
           <div
-            className="absolute -inset-[1px] bg-gradient-to-r from-red-500 via-violet-500 to-blue-500 rounded-xl opacity-100 animate-gradient"
+            className="absolute -inset-[1px] bg-gradient-to-r from-red-500/80 via-violet-500/80 to-blue-500/80 rounded-2xl opacity-90 animate-gradient"
             aria-hidden="true"
           />
         </>
       )}
       <div
-        className={`relative bg-gray-800 transition-all duration-300 ease-in-out
-          ${expanded ? "scale-[1.02]" : "scale-100 cursor-pointer"}
-          ${!isTargeted && "border border-gray-700"}
-          rounded-xl shadow-lg hover:shadow-xl`}
+        className={`relative bg-[#1A1A1C] transition-all duration-500 ease-out
+          ${
+            expanded
+              ? "scale-[1.01] shadow-[0_0.75rem_2.5rem_rgba(0,0,0,0.25)]"
+              : "scale-100 cursor-pointer shadow-[0_0.5rem_1.5rem_rgba(0,0,0,0.15)]"
+          }
+          ${!isTargeted && "border border-[#2D2D2F]/70"}
+          rounded-2xl hover:shadow-[0_1rem_3rem_rgba(0,0,0,0.3)]`}
       >
         {/* Card Header - Full Width */}
         <div
@@ -59,45 +64,53 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
             setExpanded(!expanded);
           }}
         >
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             <div className="relative">
               <div
-                className={`w-2.5 h-2.5 rounded-full transition-colors duration-300
+                className={`w-2 h-2 rounded-full transition-colors duration-500 ease-out
                   ${isConnected ? "bg-green-500" : "bg-red-500"}
                  `}
-              />
+              >
+                {isConnected && (
+                  <div className="absolute -inset-1 rounded-full bg-green-500/30 animate-pulse"></div>
+                )}
+              </div>
             </div>
 
             <h2
-              className={`text-lg font-medium tracking-tight antialiased transition-colors duration-300
+              className={`text-lg font-medium tracking-tight antialiased transition-all duration-500 ease-out
               ${
                 isTargeted
-                  ? "text-blue-300 drop-shadow-[0_0_8px_rgba(59,130,246,0.2)]"
-                  : "text-gray-200"
+                  ? "text-blue-300 drop-shadow-[0_0_12px_rgba(59,130,246,0.3)]"
+                  : "text-[#F5F5F7]"
               }`}
             >
               {userData.deviceName}
             </h2>
 
             <span
-              className={`px-2.5 py-1 text-xs font-medium rounded-full flex items-center gap-1.5 transition-colors duration-300
+              className={`px-3 py-1 text-xs font-medium rounded-full flex items-center gap-1.5 transition-all duration-500 ease-out
               ${getPlatformBgColor(platform)}
-              ${isTargeted ? "ring-1 ring-blue-400/30" : ""}`}
+              ${
+                isTargeted
+                  ? "ring-1 ring-blue-400/30 shadow-[0_0_8px_rgba(59,130,246,0.2)]"
+                  : ""
+              }`}
             >
               <PlatformIcon platform={platform} />
               {displayPlatform}
             </span>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             <span
-              className={`px-3 py-1 text-xs font-medium rounded-full transition-colors duration-300
+              className={`px-3 py-1 text-xs font-medium rounded-full transition-all duration-500 ease-out
                 ${
                   userData.deviceId
                     ? isConnected
-                      ? "bg-green-900/80 text-green-300"
-                      : "bg-red-900/80 text-red-300"
-                    : "bg-yellow-900/80 text-yellow-300"
+                      ? "bg-green-900/80 text-green-300 shadow-[0_0_8px_rgba(74,222,128,0.1)]"
+                      : "bg-red-900/80 text-red-300 shadow-[0_0_8px_rgba(248,113,113,0.1)]"
+                    : "bg-yellow-900/80 text-yellow-300 shadow-[0_0_8px_rgba(250,204,21,0.1)]"
                 }
               `}
             >
@@ -106,10 +119,10 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
 
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-4 w-4 transition-all duration-300
+              className={`h-4 w-4 transition-all duration-500 ease-out
                 ${expanded ? "rotate-180" : ""}
-                ${isTargeted ? "text-blue-400" : "text-gray-400"}
-                group-hover:text-gray-300`}
+                ${isTargeted ? "text-blue-400" : "text-[#A1A1A6]"}
+                group-hover:text-[#F5F5F7]`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -126,7 +139,7 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
 
         {expanded && (
           <div
-            className="grid grid-cols-2 gap-3 text-sm px-5 pb-5 animate-fadeIn border-t border-gray-700 pt-4 select-text"
+            className="grid grid-cols-2 gap-3 text-sm px-5 pb-5 animate-fadeIn border-t border-[#2D2D2F]/70 pt-4 select-text"
             onClick={(e) => e.stopPropagation()}
           >
             <InfoRow label="Socket ID" value={userData.id} monospace />
@@ -163,9 +176,9 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
 
             {Object.keys(extraDeviceInfo).length > 0 ? (
               <>
-                <div className="col-span-2 border-t border-gray-700 my-3" />
+                <div className="col-span-2 border-t border-[#2D2D2F]/70 my-3" />
                 <div className="col-span-2 mb-2">
-                  <div className="flex items-center gap-1.5 text-gray-300 font-medium">
+                  <div className="flex items-center gap-1.5 text-[#F5F5F7] font-medium">
                     <svg
                       className="w-4 h-4 text-blue-400"
                       fill="none"
@@ -187,16 +200,16 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
                     key={key}
                     label={key}
                     value={value as string}
-                    className="text-gray-200"
-                    labelClassName="text-gray-400"
+                    className="text-[#F5F5F7]"
+                    labelClassName="text-[#A1A1A6]"
                   />
                 ))}
               </>
             ) : (
               <>
-                <div className="col-span-2 border-t border-gray-700 my-3" />
+                <div className="col-span-2 border-t border-[#2D2D2F]/70 my-3" />
                 <div className="col-span-2 mb-2">
-                  <div className="flex items-center gap-1.5 text-gray-300 font-medium">
+                  <div className="flex items-center gap-1.5 text-[#F5F5F7] font-medium">
                     <svg
                       className="w-4 h-4 text-amber-400"
                       fill="none"
@@ -213,15 +226,15 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
                     <span>Device Specifications</span>
                   </div>
                 </div>
-                <div className="col-span-2 text-xs text-gray-400">
+                <div className="col-span-2 text-xs text-[#A1A1A6]">
                   <div className="mb-2">
                     No specifications available. Pass custom device info via the{" "}
-                    <code className="px-1 py-0.5 bg-gray-700 rounded text-blue-300">
+                    <code className="px-1.5 py-0.5 bg-[#0A0A0C] rounded text-blue-300">
                       extraDeviceInfo
                     </code>{" "}
                     prop:
                   </div>
-                  <code className="text-xs bg-gray-700/70 rounded p-2 font-mono text-gray-300 block w-full">
+                  <code className="text-xs bg-[#0A0A0C]/70 rounded-lg p-3 font-mono text-[#F5F5F7] block w-full">
                     extraDeviceInfo: {"{"}
                     "Model": "iPhone 14", "OS": "iOS 16.0", ...
                     {"}"}
@@ -230,7 +243,7 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
               </>
             )}
 
-            <div className="col-span-2 text-xs text-gray-400 mt-2 flex items-center justify-center space-x-2">
+            <div className="col-span-2 text-xs text-[#A1A1A6] mt-3 flex items-center justify-center space-x-2">
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -250,7 +263,7 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
         )}
       </div>
       <div
-        className={`absolute inset-0 -z-10 bg-gradient-to-b from-gray-800/50 to-transparent rounded-xl transition-opacity duration-200
+        className={`absolute inset-0 -z-10 bg-gradient-to-b from-[#1A1A1C]/30 to-transparent rounded-2xl transition-opacity duration-500 ease-out
           ${expanded ? "opacity-100" : "opacity-0"}`}
         aria-hidden="true"
       />
@@ -270,8 +283,8 @@ const InfoRow: React.FC<InfoRowProps> = ({
   label,
   value,
   monospace,
-  className = "text-gray-200",
-  labelClassName = "text-gray-400",
+  className = "text-[#F5F5F7]",
+  labelClassName = "text-[#A1A1A6]",
 }) => (
   <>
     <div className={`${labelClassName} font-medium antialiased`}>{label}:</div>

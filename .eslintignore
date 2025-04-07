@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+.next/
+out/
+
+# IDE Specific
+.idea/
+.vscode/
+
+# Specific files with TypeScript issues
+src/components/external-dash/LogConsole.tsx 

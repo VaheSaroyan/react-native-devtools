@@ -59,7 +59,7 @@ export interface OnlineManagerMessage {
 
 // --- Constants ---
 const LOG_PREFIX = "[DASHBOARD]";
-const INVALID_DEVICE_IDS = ["No devices available", "Please select a user"];
+const INVALID_DEVICE_IDS = ["No devices available", "Please select a device"];
 
 // Logger metadata types
 interface BaseLogMetadata extends Partial<User> {

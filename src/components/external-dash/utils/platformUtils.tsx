@@ -66,39 +66,39 @@ interface PlatformConfig {
 const platformConfiguration: Record<string, PlatformConfig> = {
   ios: {
     displayName: "iOS",
-    bgColor: "bg-gray-500",
-    textColor: "text-gray-100",
+    bgColor: "bg-blue-900/30 text-blue-200",
+    textColor: "text-blue-300",
     IconComponent: IosIcon,
   },
   android: {
     displayName: "Android",
-    bgColor: "bg-green-600/40",
+    bgColor: "bg-green-900/30 text-green-200",
     textColor: "text-green-300",
     IconComponent: AndroidIcon,
   },
   web: {
     displayName: "Web",
-    bgColor: "bg-blue-900/40",
-    textColor: "text-blue-300",
+    bgColor: "bg-cyan-900/30 text-cyan-200",
+    textColor: "text-cyan-300",
     IconComponent: WebIcon,
   },
   tv: {
     displayName: "Android TV",
-    bgColor: "bg-green-600/40",
+    bgColor: "bg-green-900/30 text-green-200",
     textColor: "text-green-300",
     IconComponent: AndroidTvIcon,
   },
   tvos: {
     displayName: "Apple TV",
-    bgColor: "bg-gray-500",
-    textColor: "text-gray-100",
+    bgColor: "bg-purple-900/30 text-purple-200",
+    textColor: "text-purple-300",
     IconComponent: AppleTvIcon,
   },
   // Default configuration for unknown platforms
   default: {
     displayName: "Device",
-    bgColor: "bg-gray-700",
-    textColor: "text-gray-300",
+    bgColor: "bg-[#1D1D1F]/60 text-[#F5F5F7]",
+    textColor: "text-[#F5F5F7]",
     IconComponent: DefaultDeviceIcon,
   },
 };
@@ -137,7 +137,7 @@ export const PlatformIcon: React.FC<{
  */
 export const getPlatformColorClasses = (platform: string): string => {
   const config = getPlatformConfig(platform);
-  return `${config.bgColor} ${config.textColor}`;
+  return `${config.bgColor}`;
 };
 
 /**
