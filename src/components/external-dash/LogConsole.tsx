@@ -94,6 +94,60 @@ export const LogConsole: React.FC<LogConsoleProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
+  // Resizable functionality
+  const [height, setHeight] = useState(320); // Default height in pixels
+  const resizableRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Calculate max height based on window height
+  const calculateMaxHeight = () => {
+    // Leave space for the header (approximately 64px) and some padding
+    return window.innerHeight - 80;
+  };
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent text selection
+    if (e.button !== 0) return; // Only handle left mouse button
+
+    setIsDragging(true);
+    const startY = e.clientY;
+    const startHeight = height;
+
+    const handleResizeMove = (e: MouseEvent) => {
+      const deltaY = startY - e.clientY;
+      const maxHeight = calculateMaxHeight();
+      const newHeight = Math.max(
+        200,
+        Math.min(maxHeight, startHeight + deltaY)
+      );
+      setHeight(newHeight);
+    };
+
+    const handleResizeEnd = () => {
+      setIsDragging(false);
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleResizeEnd);
+      document.body.style.cursor = "default";
+    };
+
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+    document.body.style.cursor = "ns-resize";
+  };
+
+  // Update max height on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const maxHeight = calculateMaxHeight();
+      if (height > maxHeight) {
+        setHeight(maxHeight);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [height]);
+
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
       scrollRef.current.scrollTop = 0;
@@ -184,6 +238,14 @@ export const LogConsole: React.FC<LogConsoleProps> = ({
 
   return (
     <>
+      {/* Resize handle */}
+      <div
+        className="h-1 bg-transparent hover:bg-gray-600/50 cursor-ns-resize relative group"
+        onMouseDown={handleResizeStart}
+      >
+        <div className="absolute inset-x-0 h-0.5 bottom-0 bg-gray-700/50 group-hover:bg-gray-500/50" />
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700/50">
         <div className="flex items-center gap-2">
@@ -382,10 +444,13 @@ export const LogConsole: React.FC<LogConsoleProps> = ({
         </div>
       </div>
 
-      {/* Log entries container */}
+      {/* Log entries container with dynamic height */}
       <div
         ref={scrollRef}
-        className="h-80 overflow-y-auto flex flex-col-reverse select-text"
+        style={{ height: `${height}px` }}
+        className={`overflow-y-auto flex flex-col-reverse select-text ${
+          isDragging ? "pointer-events-none" : ""
+        }`}
         onKeyDown={(e) => {
           if ((e.ctrlKey || e.metaKey) && e.key === "a") {
             e.preventDefault();
