@@ -29,19 +29,19 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
         <>
           {/* Extended glow effect - furthest back */}
           <div
-            className="absolute -inset-[3px] bg-gradient-to-r from-red-500/10 via-violet-500/10 to-blue-500/10 rounded-2xl blur-xl animate-gradient opacity-70"
+            className="absolute -inset-[3px] bg-gradient-to-r from-red-500/10 via-violet-500/10 to-blue-500/10 rounded-2xl blur-xl animate-gradient opacity-70 transition-opacity duration-500 ease-out"
             aria-hidden="true"
           />
 
           {/* Outer glow effect */}
           <div
-            className="absolute -inset-[2px] bg-gradient-to-r from-red-500/30 via-violet-500/30 to-blue-500/30 rounded-2xl blur-md animate-gradient"
+            className="absolute -inset-[2px] bg-gradient-to-r from-red-500/30 via-violet-500/30 to-blue-500/30 rounded-2xl blur-md animate-gradient transition-opacity duration-500 ease-out"
             aria-hidden="true"
           />
 
           {/* Primary glowing border */}
           <div
-            className="absolute -inset-[1px] bg-gradient-to-r from-red-500/80 via-violet-500/80 to-blue-500/80 rounded-2xl opacity-90 animate-gradient"
+            className="absolute -inset-[1px] bg-gradient-to-r from-red-500/80 via-violet-500/80 to-blue-500/80 rounded-2xl opacity-90 animate-gradient transition-opacity duration-500 ease-out"
             aria-hidden="true"
           />
         </>
@@ -53,7 +53,9 @@ export const UserInfo: React.FC<Props> = ({ userData, isTargeted = false }) => {
               ? "scale-[1.01] shadow-[0_0.75rem_2.5rem_rgba(0,0,0,0.25)]"
               : "scale-100 cursor-pointer shadow-[0_0.5rem_1.5rem_rgba(0,0,0,0.15)]"
           }
-          ${!isTargeted && "border border-[#2D2D2F]/70"}
+          border border-[#2D2D2F]/70 ${
+            isTargeted ? "border-opacity-0" : "border-opacity-70"
+          }
           rounded-2xl hover:shadow-[0_1rem_3rem_rgba(0,0,0,0.3)]`}
       >
         {/* Card Header - Full Width */}
