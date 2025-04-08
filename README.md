@@ -2,7 +2,10 @@
 
 Enhanced developer tools for React Native applications, currently supporting React Query DevTools with a beautiful native interface.
 
-![image](https://github.com/user-attachments/assets/39e5c417-be4d-46af-8138-3589d73fce9f)
+![ios pokemon](https://github.com/user-attachments/assets/25ffb38c-2e41-4aa9-a3c7-6f74383a75fc)
+
+https://github.com/user-attachments/assets/fce3cba3-b30a-409a-8f8f-db2bd28579be
+
 
 ## ✨ Features
 
