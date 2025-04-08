@@ -8,70 +8,88 @@ Enhanced developer tools for React Native applications, currently supporting Rea
 
 - 🔄 Real-time React Query state monitoring
 - 🎨 Beautiful native macOS interface
-- 🚀 Automatic connection to Native apps
+- 🚀 Automatic connection to React apps
 - 📊 Query status visualization
 - 🔌 Socket.IO integration for reliable communication
-- ⚡️ Simple setup (temporarily requires manual integration during beta)
+- ⚡️ Simple setup with NPM package
+- 📱 Works with **any React-based platform**: React Native, React Web, Next.js, Expo, tvOS, VR, etc.
+- 🛑 Zero-config production safety - automatically disabled in production builds
 
 ## 📦 Installation
 
-### DevTools Application
+### DevTools Desktop Application (macOS)
+
+> **⚠️ Important**: The desktop app has currently only been tested on Apple Silicon Macs (M1/M2/M3).
+> If you encounter issues on Intel-based Macs, please [open an issue](https://github.com/LovesWorking/rn-better-dev-tools/issues)
+> and we'll work together to fix it.
 
 1. Download the latest release from the [Releases page](https://github.com/LovesWorking/rn-better-dev-tools/releases)
 2. Extract the ZIP file
 3. Move the app to your Applications folder
 4. Launch the app
 
-### React Native App Integration
+### React Application Integration
 
-See the "Connecting Native Devices" section below for instructions on integrating with your React Native application.
+The easiest way to connect your React application to the DevTools is by installing the npm package:
+
+```bash
+# Using npm
+npm install --save-dev react-query-external-sync socket.io-client
+
+# Using yarn
+yarn add -D react-query-external-sync socket.io-client
+
+# Using pnpm (recommended)
+pnpm add -D react-query-external-sync socket.io-client
+```
 
 ## 🚀 Quick Start
 
 1. Launch React Native DevTools application
-2. Setup your React Native application (see "Connecting Native Devices" below)
-3. Start your React Native application(s)
-4. DevTools will automatically detect and connect to your running applications
+2. Add the hook to your application where you set up your React Query context:
 
-> **Note**: Always launch DevTools before starting your React Native applications to ensure proper connection.
+```jsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useSyncQueriesExternal } from "react-query-external-sync";
+// Import Platform for React Native or use other platform detection for web/desktop
+import { Platform } from "react-native";
 
-## 📱 Connecting Native Devices
+// Create your query client
+const queryClient = new QueryClient();
 
-**Note**: This is currently in beta testing phase and will be made into a proper package soon.
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+    </QueryClientProvider>
+  );
+}
 
-To connect your React Native app to the DevTools:
+function AppContent() {
+  // Set up the sync hook - automatically disabled in production!
+  useSyncQueriesExternal({
+    queryClient,
+    socketURL: "http://localhost:42831", // Default port for React Native DevTools
+    deviceName: Platform?.OS || "web", // Platform detection
+    platform: Platform?.OS || "web", // Use appropriate platform identifier
+    deviceId: Platform?.OS || "web", // Use a PERSISTENT identifier (see note below)
+    extraDeviceInfo: {
+      // Optional additional info about your device
+      appVersion: "1.0.0",
+      // Add any relevant platform info
+    },
+    enableLogs: false,
+  });
 
-1. Copy the `./react-query-external-sync` folder from this repository to your project
-2. Install the Socket.IO client in your application:
+  // Your app content
+  return <YourApp />;
+}
+```
 
-   ```bash
-   # Using npm
-   npm install --save-dev socket.io-client
+3. Start your React application
+4. DevTools will automatically detect and connect to your running application
 
-   # Using yarn
-   yarn add -D socket.io-client
-
-   # Using pnpm (recommended)
-   pnpm add -D socket.io-client
-   ```
-
-3. After setting up your React Query context, add the hook:
-
-   ```jsx
-   import { useSyncQueriesExternal } from "./path-to-copied-folder/react-query-external-sync";
-
-   useSyncQueriesExternal({
-     queryClient,
-     socketURL: "http://localhost:42831",
-     deviceName: isIOS ? "ios" : "android",
-     platform: isIOS ? "ios" : "android",
-     deviceId: isIOS ? "ios" : "android",
-     extraDeviceInfo: {
-       "test-device-info": "test",
-     },
-     enableLogs: true,
-   });
-   ```
+> **Note**: For optimal connection, launch DevTools before starting your application.
 
 ## 💡 Usage Tips
 
@@ -79,10 +97,36 @@ To connect your React Native app to the DevTools:
 - Monitor query states in real-time
 - View detailed query information
 - Track cache updates and invalidations
+- The hook is automatically disabled in production builds, no configuration needed
+
+## 📱 Platform Support
+
+React Native DevTools works with **any React-based application**, regardless of platform:
+
+- 📱 Mobile: iOS, Android
+- 🖥️ Web: React, Next.js, Remix, etc.
+- 🖥️ Desktop: Electron, Tauri
+- 📺 TV: tvOS, Android TV
+- 🥽 VR/AR: Meta Quest, etc.
+- 💻 Cross-platform: Expo, React Native Web
+
+If your platform can run React and connect to a socket server, it will work with these DevTools!
+
+## 🔮 Future Plans
+
+React Native DevTools is actively being developed with exciting features on the roadmap:
+
+- 📊 **Storage Viewers**: Beautiful interfaces for viewing and modifying storage (AsyncStorage, MMKV, etc.)
+- 🌐 **Network Request Monitoring**: Track API calls, WebSockets, and GraphQL requests
+- ❌ **Failed Request Tracking**: Easily identify and debug network failures
+- 🔄 **Remote Expo DevTools**: Trigger Expo DevTools commands remotely without using the command line
+- 🧩 **Plugin System**: Allow community extensions for specialized debugging tasks
+
+Stay tuned for updates!
 
 ## 🤝 Contributing
 
-I welcome contributions! See our [Development Guide](DEVELOPMENT.md) for details on:
+I welcome contributions! See [Development Guide](DEVELOPMENT.md) for details on:
 
 - Setting up the development environment
 - Building and testing
@@ -95,8 +139,8 @@ Having issues? Check these common solutions:
 
 1. **App Not Connecting**
 
-   - Ensure DevTools is launched before your React Native app
-   - Check that your React Native app is running
+   - Ensure DevTools is launched before your React app
+   - Check that your React app is running
    - Verify you're on the same network
    - Make sure the `socketURL` is correctly pointing to localhost:42831
    - Verify the Socket.IO client is properly installed in your app
@@ -105,13 +149,56 @@ Having issues? Check these common solutions:
 2. **App Not Starting**
 
    - Verify you're using the latest version
-   - Check system requirements (macOS)
+   - Check system requirements (macOS with Apple Silicon chip)
    - Try reinstalling the application
+   - If using an Intel Mac and encountering issues, please report them
 
 3. **Socket Connection Issues**
+
    - Make sure no firewall is blocking the connection on port 42831
-   - Restart both the DevTools app and your React Native app
+   - Restart both the DevTools app and your React app
    - Check the console logs with `enableLogs: true` for any error messages
+
+4. **Data Not Syncing**
+
+   - Confirm you're passing the correct `queryClient` instance
+   - Set `enableLogs: true` to see connection information
+
+5. **Device ID Issues**
+   - Make sure your `deviceId` is persistent (see below)
+
+## ⚠️ Important Note About Device IDs
+
+The `deviceId` parameter must be **persistent** across app restarts and re-renders. Using a value that changes (like `Date.now()`) will cause each render to be treated as a new device.
+
+**Recommended approaches:**
+
+```jsx
+// Simple approach for single devices
+deviceId: Platform.OS, // Works if you only have one device per platform
+
+// Better approach for multiple simulators/devices of same type
+// Using AsyncStorage, MMKV, or another storage solution
+const [deviceId, setDeviceId] = useState(Platform.OS);
+
+useEffect(() => {
+  const loadOrCreateDeviceId = async () => {
+    // Try to load existing ID
+    const storedId = await AsyncStorage.getItem('deviceId');
+
+    if (storedId) {
+      setDeviceId(storedId);
+    } else {
+      // First launch - generate and store a persistent ID
+      const newId = `${Platform.OS}-${Date.now()}`;
+      await AsyncStorage.setItem('deviceId', newId);
+      setDeviceId(newId);
+    }
+  };
+
+  loadOrCreateDeviceId();
+}, []);
+```
 
 For more detailed troubleshooting, see our [Development Guide](DEVELOPMENT.md).
 
