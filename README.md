@@ -6,6 +6,8 @@ Enhanced developer tools for React Native applications, currently supporting Rea
 
 https://github.com/user-attachments/assets/fce3cba3-b30a-409a-8f8f-db2bd28579be
 
+# Example app
+https://github.com/LovesWorking/RN-Dev-Tools-Example
 
 ## ✨ Features
 
