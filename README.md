@@ -126,6 +126,7 @@ React Native DevTools is actively being developed with exciting features on the 
 - ❌ **Failed Request Tracking**: Easily identify and debug network failures
 - 🔄 **Remote Expo DevTools**: Trigger Expo DevTools commands remotely without using the command line
 - 🧩 **Plugin System**: Allow community extensions for specialized debugging tasks
+-  drizzle-studio-plugin
 
 Stay tuned for updates!
 
