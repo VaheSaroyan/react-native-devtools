@@ -11,6 +11,7 @@ import useConnectedUsers from "./_hooks/useConnectedUsers";
 import { User } from "./types/User";
 import { Socket } from "socket.io-client";
 import { logger, createDeviceLogger } from "./utils/logger";
+import { useDevToolsEventHandler } from "./hooks/useDevToolsEventHandler";
 
 /**
  * Query actions that can be performed on a query.
@@ -29,7 +30,9 @@ type QueryActions =
   // Loading state actions
   | "ACTION-TRIGGER-LOADING" // Manually trigger a loading state
   | "ACTION-RESTORE-LOADING" // Restore from a loading state
-  | "success"; // Internal success action
+  | "success" // Internal success action
+  | "ACTION-CLEAR-MUTATION-CACHE" // Clear the mutation cache
+  | "ACTION-CLEAR-QUERY-CACHE"; // Clear the query cache
 
 /**
  * Message structure for query actions sent from dashboard to devices
@@ -414,13 +417,13 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
     };
   }, [isConnected, socket]); // Depends on connection status and socket instance
 
-  // Effect to handle query cache changes and forward actions
+  // Effect to handle query cache changes for manual updates
   useEffect(() => {
     if (!isConnected || !socket) return;
 
     const queryCache = queryClient.getQueryCache();
     logger.info(
-      `${LOG_PREFIX} Setting up query cache listener to forward actions to device`
+      `${LOG_PREFIX} Setting up query cache listener for manual data updates`
     );
 
     const querySubscription = queryCache.subscribe((event) => {
@@ -436,7 +439,7 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
           `${LOG_PREFIX} Query cache event ignored - no valid device selected`,
           logMetadata
         );
-        return; // Don't forward actions if no valid device is selected
+        return;
       }
 
       // Process query cache events
@@ -450,45 +453,21 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
           action: actionType,
         };
 
-        switch (actionType) {
-          // Actions to forward directly
-          case "ACTION-REFETCH":
-          case "ACTION-INVALIDATE":
-          case "ACTION-TRIGGER-ERROR":
-          case "ACTION-RESTORE-ERROR":
-          case "ACTION-RESET":
-          case "ACTION-REMOVE":
-          case "ACTION-TRIGGER-LOADING":
-          case "ACTION-RESTORE-LOADING":
+        // Handle manual data updates specifically
+        if (actionType === "success") {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error This 'manual' property might exist based on usage pattern
+          if (event.action.manual) {
             logger.debug(
-              `${LOG_PREFIX} Forwarding ${actionType} to device: ${currentSelectedDevice.deviceName}`,
+              `${LOG_PREFIX} Forwarding manual data update to device: ${currentSelectedDevice.deviceName}`,
               queryLogMetadata
             );
             sendQueryAction(
               socket,
               currentSelectedDevice,
-              actionType,
+              "ACTION-DATA-UPDATE",
               event.query
             );
-            break;
-
-          // Handle manual data updates specifically
-          case "success": {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error This 'manual' property might exist based on usage pattern
-            if (event.action.manual) {
-              logger.debug(
-                `${LOG_PREFIX} Forwarding manual data update to device: ${currentSelectedDevice.deviceName}`,
-                queryLogMetadata
-              );
-              sendQueryAction(
-                socket,
-                currentSelectedDevice,
-                "ACTION-DATA-UPDATE",
-                event.query
-              );
-            }
-            break;
           }
         }
       }
@@ -498,7 +477,57 @@ export function useSyncQueriesWeb({ targetDevice, allDevices }: Props) {
       logger.info(`${LOG_PREFIX} Cleaning up query cache subscription`);
       querySubscription();
     };
-  }, [isConnected, socket, queryClient]); // Depends on connection, socket, and queryClient
+  }, [isConnected, socket, queryClient]);
+
+  // Memoize the action handler
+  const handleQueryAction = useCallback(
+    (socket: Socket, targetDevice: User, action: string, query: any) => {
+      if (!isValidDevice(targetDevice)) {
+        logger.debug(
+          `${LOG_PREFIX} Query action ignored - no valid device selected`,
+          {
+            deviceId: targetDevice?.deviceId,
+            deviceName: targetDevice?.deviceName,
+          }
+        );
+        return;
+      }
+
+      const queryLogMetadata = {
+        queryHash: query.queryHash,
+        queryKey: query.queryKey,
+        deviceName: targetDevice.deviceName,
+        deviceId: targetDevice.deviceId,
+        action,
+      };
+
+      logger.debug(
+        `${LOG_PREFIX} Forwarding ${action} to device: ${targetDevice.deviceName}`,
+        queryLogMetadata
+      );
+
+      sendQueryAction(socket, targetDevice, action as QueryActions, query);
+    },
+    []
+  );
+
+  // Debug log for dependencies
+  useEffect(() => {
+    console.log("🔍 SyncQueriesWeb Dependencies:", {
+      isConnected,
+      hasSocket: !!socket,
+      targetDevice,
+      handleQueryAction: !!handleQueryAction,
+    });
+  }, [isConnected, socket, targetDevice, handleQueryAction]);
+
+  // Use the dev tools event handler for explicit actions
+  useDevToolsEventHandler({
+    isConnected,
+    socket,
+    selectedDevice: targetDevice,
+    sendQueryAction: handleQueryAction,
+  });
 
   // Return connection status (or potentially other state if needed later)
   return { isConnected };

@@ -29,7 +29,9 @@ type QueryActions =
   | "ACTION-ONLINE-MANAGER-ONLINE" // Set online manager to online
   | "ACTION-ONLINE-MANAGER-OFFLINE" // Set online manager to offline
   // Internal action
-  | "success"; // Internal success action
+  | "success" // Internal success action
+  | "ACTION-CLEAR-MUTATION-CACHE" // Clear the mutation cache
+  | "ACTION-CLEAR-QUERY-CACHE"; // Clear the query cache
 
 /**
  * Message structure for query actions between dashboard and devices

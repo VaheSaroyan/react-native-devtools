@@ -3,6 +3,8 @@ import { User } from "./types/User";
 import "../../index.css";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 import { useLogStore } from "./utils/logStore";
+import { onDevToolsEvent } from "./utils/devToolsEvents";
+import { useDevToolsEventHandler } from "./hooks/useDevToolsEventHandler";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
@@ -113,6 +115,8 @@ export const Dash: React.FC<DashProps> = ({
     });
     foundDevice && setTargetDevice(foundDevice);
   }, [setTargetDevice, filteredDevices, targetDevice]);
+
+  useDevToolsEventHandler();
 
   return (
     <div className="font-sf-pro">
