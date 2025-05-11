@@ -58,7 +58,7 @@ export function Hydrate(
   });
   // Hydrate queries
   dehydratedQueries.forEach(
-    ({ queryKey, state, queryHash, meta, promise, observers }) => {
+    ({ queryKey, state, queryHash, meta, promise, observers, gcTime }) => {
       let query = queryCache.get(queryHash);
       const data =
         state.data === undefined ? state.data : deserializeData(state.data);
@@ -76,7 +76,7 @@ export function Hydrate(
             ...query.options,
             queryFn: mockQueryFn,
             retry: 0,
-            gcTime: 0,
+            gcTime: gcTime ?? 0,
           });
         }
       } else {
@@ -90,6 +90,7 @@ export function Hydrate(
             queryHash,
             meta,
             queryFn: mockQueryFn,
+            gcTime: gcTime ?? 0,
           },
           {
             ...state,
@@ -130,7 +131,7 @@ function recreateObserver(
   observers.forEach((observerState) => {
     // Create a new options object without the unwanted properties
     const cleanedOptions = { ...observerState.options };
-    // @ts-ignore - This prevents infinite queries from being refetched in dev tools
+    // @ts-expect-error - This prevents infinite queries from being refetched in dev tools
     delete cleanedOptions?.initialPageParam;
     delete cleanedOptions?.behavior;
     // Replace the queryFn with a mock function to prevent errors when restoring error

@@ -41,6 +41,7 @@ export interface DehydratedQuery {
   promise?: Promise<unknown>;
   meta?: QueryMeta;
   observers: ObserverState[];
+  gcTime?: number;
 }
 export interface ObserverState<
   TQueryFnData = unknown,
