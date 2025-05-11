@@ -7,6 +7,7 @@ Enhanced developer tools for React Native applications, currently supporting Rea
 https://github.com/user-attachments/assets/fce3cba3-b30a-409a-8f8f-db2bd28579be
 
 # Example app
+
 https://github.com/LovesWorking/RN-Dev-Tools-Example
 
 ## ✨ Features
@@ -94,6 +95,35 @@ function AppContent() {
 3. Start your React application
 4. DevTools will automatically detect and connect to your running application
 
+### 📱 Using with Real Devices (Local Network)
+
+When testing on real devices connected to your local network, you'll need to use your host machine's IP address instead of `localhost`. Here's a helpful setup for Expo apps (contributed by [ShoeBoom](https://github.com/ShoeBoom)):
+
+```jsx
+import Constants from "expo-constants";
+
+// Get the host IP address dynamically
+const hostIP =
+  Constants.expoGoConfig?.debuggerHost?.split(`:`)[0] ||
+  Constants.expoConfig?.hostUri?.split(`:`)[0];
+
+function AppContent() {
+  useSyncQueriesExternal({
+    queryClient,
+    socketURL: `http://${hostIP}:42831`, // Use local network IP
+    deviceName: Platform?.OS || "web",
+    platform: Platform?.OS || "web",
+    deviceId: Platform?.OS || "web",
+    extraDeviceInfo: {
+      appVersion: "1.0.0",
+    },
+    enableLogs: false,
+  });
+
+  return <YourApp />;
+}
+```
+
 > **Note**: For optimal connection, launch DevTools before starting your application.
 
 ## 💡 Usage Tips
@@ -126,7 +156,7 @@ React Native DevTools is actively being developed with exciting features on the 
 - ❌ **Failed Request Tracking**: Easily identify and debug network failures
 - 🔄 **Remote Expo DevTools**: Trigger Expo DevTools commands remotely without using the command line
 - 🧩 **Plugin System**: Allow community extensions for specialized debugging tasks
--  drizzle-studio-plugin
+- drizzle-studio-plugin
 
 Stay tuned for updates!
 
