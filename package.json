@@ -59,9 +59,9 @@
     "vite": "^5.0.12"
   },
   "dependencies": {
-    "@tanstack/query-devtools": "file:/Users/aj/Desktop/my-react-query-clone/tanstack-query-devtools-5.74.7.tgz",
+    "@tanstack/query-devtools": "file:tanstack-query-devtools-5.74.7.tgz",
     "@tanstack/react-query": "^5.75.7",
-    "@tanstack/react-query-devtools": "file:/Users/aj/Desktop/my-react-query-clone/tanstack-react-query-devtools-5.75.7.tgz",
+    "@tanstack/react-query-devtools": "file:tanstack-react-query-devtools-5.75.7.tgz",
     "bufferutil": "^4.0.9",
     "electron-log": "^5.3.3",
     "electron-squirrel-startup": "^1.0.1",
