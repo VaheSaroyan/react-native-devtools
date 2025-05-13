@@ -42,7 +42,7 @@ export interface QueryActionMessage {
   queryKey: QueryKey; // Key array used to identify the query
   data: unknown; // Data payload (if applicable)
   action: QueryActions; // Action to perform
-  deviceId: string; // Device ID to target
+  targetDeviceId: string; // Device ID to target
 }
 
 /**
@@ -152,7 +152,7 @@ const sendQueryAction = (
 
   const message: QueryActionMessage = {
     action,
-    deviceId: targetDevice.deviceId,
+    targetDeviceId: targetDevice.deviceId,
     queryHash: query.queryHash,
     queryKey: query.queryKey,
     data: query.state.data,

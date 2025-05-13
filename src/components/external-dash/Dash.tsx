@@ -5,11 +5,13 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
 import { useLogStore } from "./utils/logStore";
 import { onDevToolsEvent } from "./utils/devToolsEvents";
 import { useDevToolsEventHandler } from "./hooks/useDevToolsEventHandler";
+import useConnectedUsers from "./_hooks/useConnectedUsers";
 
 import { DeviceSelection } from "./DeviceSelection";
 import { UserInfo } from "./UserInfo";
 import { LogConsole } from "./LogConsole";
 import { NoDevicesConnected } from "./NoDevicesConnected";
+import { AsyncStorageViewer } from "./AsyncStorageViewer";
 
 export const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
   const normalizedPlatform = platform?.toLowerCase() || "";
@@ -98,6 +100,7 @@ export const Dash: React.FC<DashProps> = ({
 }) => {
   const [showOfflineDevices, setShowOfflineDevices] = useState(true);
   const { isEnabled, setIsEnabled, isVisible, setIsVisible } = useLogStore();
+  const { socket } = useConnectedUsers();
 
   const filteredDevices = showOfflineDevices
     ? allDevices
@@ -338,7 +341,14 @@ export const Dash: React.FC<DashProps> = ({
           )}
         </div>
 
-        <div className="fixed bottom-20 right-4 z-50">
+        {/* AsyncStorage Viewer */}
+        <AsyncStorageViewer
+          isConnected={isDashboardConnected}
+          socket={socket}
+          selectedDevice={targetDevice}
+        />
+
+        <div className="fixed bottom-20 right-4">
           <ReactQueryDevtools
             initialIsOpen={false}
             position="bottom"

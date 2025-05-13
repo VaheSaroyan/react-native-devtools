@@ -5,6 +5,11 @@ type DefaultEventsMap = Record<string, (...args: any[]) => void>;
 import { User } from "../components/external-dash/types/User";
 import { SyncMessage } from "../components/external-dash/shared/types";
 import {
+  AsyncStorageActionMessage,
+  AsyncStorageRequestMessage,
+  AsyncStorageSyncMessage,
+} from "../components/external-dash/shared/asyncStorageTypes";
+import {
   OnlineManagerMessage,
   QueryActionMessage,
   QueryRequestInitialStateMessage,
@@ -462,24 +467,24 @@ export default function socketHandle({ io }: Props) {
     // ==========================================================
     // Handle query action messages from the dashboard to the devices
     // ==========================================================
-    socket.on("query-action", (message: QueryActionMessage) => {
-      const deviceName = getDeviceFromDeviceId(message.deviceId)?.deviceName;
-      // Check if message exists before accessing properties
-      if (!message) {
-        console.error(`${LOG_PREFIX} Error: query-action message is undefined`);
-        return;
-      }
+  socket.on("query-action", (message: QueryActionMessage) => {
+    const deviceName = getDeviceFromDeviceId(message.targetDeviceId)?.deviceName;
+    // Check if message exists before accessing properties
+    if (!message) {
+      console.error(`${LOG_PREFIX} Error: query-action message is undefined`);
+      return;
+    }
 
-      console.log(
-        `${LOG_PREFIX} Query action from dashboard - Action: ${message.action}, Target: ${deviceName}`
-      );
+    console.log(
+      `${LOG_PREFIX} Query action from dashboard - Action: ${message.action}, Target: ${deviceName}`
+    );
 
-      withTargetUsers(
-        message.deviceId,
-        (user) => io.to(user.id).emit("query-action", message),
-        "query action"
-      );
-    });
+    withTargetUsers(
+      message.targetDeviceId,
+      (user) => io.to(user.id).emit("query-action", message),
+      "query action"
+    );
+  });
 
     // ==========================================================
     // Handle dashboard requesting initial state from devices
@@ -513,22 +518,96 @@ export default function socketHandle({ io }: Props) {
       }
     );
 
-    // ==========================================================
-    // Handle online manager messages from the dashboard to the devices
-    // ==========================================================
-    socket.on("online-manager", (message: OnlineManagerMessage) => {
-      const deviceName = getDeviceFromDeviceId(
-        message.targetDeviceId
-      )?.deviceName;
-      console.log(
-        `${LOG_PREFIX} Online manager message from dashboard - Action: ${message.action}, Target: ${deviceName} (${message.targetDeviceId})`
-      );
+  // ==========================================================
+  // Handle online manager messages from the dashboard to the devices
+  // ==========================================================
+  socket.on("online-manager", (message: OnlineManagerMessage) => {
+    const deviceName = getDeviceFromDeviceId(
+      message.targetDeviceId
+    )?.deviceName;
+    console.log(
+      `${LOG_PREFIX} Online manager message from dashboard - Action: ${message.action}, Target: ${deviceName} (${message.targetDeviceId})`
+    );
+
+    withTargetUsers(
+      message.targetDeviceId,
+      (user) => io.to(user.id).emit("online-manager", message),
+      "online manager message"
+    );
+  });
+
+  // ==========================================================
+  // Handle AsyncStorage action messages from the dashboard to the devices
+  // ==========================================================
+  socket.on("async-storage-action", (message: AsyncStorageActionMessage) => {
+    const deviceName = getDeviceFromDeviceId(message.targetDeviceId)?.deviceName;
+    console.log(
+      `${LOG_PREFIX} AsyncStorage action from dashboard - Action: ${message.action}, Target: ${deviceName} (${message.targetDeviceId}), Key: ${message.key || 'N/A'}`
+    );
 
       withTargetUsers(
-        message.targetDeviceId,
-        (user) => io.to(user.id).emit("online-manager", message),
-        "online manager message"
+      message.targetDeviceId,
+      (user) => io.to(user.id).emit("async-storage-action", message),
+      "async storage action"
+    );
+  });
+
+  // ==========================================================
+  // Handle AsyncStorage sync messages from devices to the dashboard
+  // ==========================================================
+  socket.on("async-storage-sync", (message: AsyncStorageSyncMessage) => {
+    const device = getDeviceFromDeviceId(message.persistentDeviceId);
+    console.log(
+      `${LOG_PREFIX} AsyncStorage sync received from: ${device?.deviceName}, Items: ${message.state.items.length}`
+    );
+
+    // Forward to all dashboard clients
+    if (dashboardClients.length === 0) {
+      console.log(
+        `${LOG_PREFIX} No dashboard clients connected to forward AsyncStorage sync to`
       );
-    });
+      return;
+    }
+
+    console.log(
+      `${LOG_PREFIX} Forwarding AsyncStorage sync from ${device?.deviceName} to ${dashboardClients.length} dashboard(s)`
+    );
+
+    // Send to each dashboard client
+    for (const dashboardId of dashboardClients) {
+      try {
+        const socket = io.sockets.sockets.get(dashboardId);
+        if (socket) {
+          socket.emit("async-storage-sync", message);
+        }
+      } catch (error) {
+        console.error(
+          `${LOG_PREFIX} Error sending AsyncStorage sync to dashboard ${dashboardId}:`,
+          error
+        );
+      }
+    }
+  });
+
+  // ==========================================================
+  // Handle AsyncStorage request messages from the dashboard to the devices
+  // ==========================================================
+  socket.on("request-async-storage", (message: AsyncStorageRequestMessage) => {
+    const deviceName = getDeviceFromDeviceId(
+      message.targetDeviceId
+    )?.deviceName;
+    console.log(
+      `${LOG_PREFIX} Request AsyncStorage state - Target: ${deviceName} (${message.targetDeviceId})`
+    );
+
+    withTargetUsers(
+      message.targetDeviceId,
+      (user) =>
+        io
+          .to(user.id)
+          .emit("request-async-storage", { type: "request-async-storage",targetDeviceId: message.targetDeviceId }),
+      "async storage request"
+    );
+  });
   });
 }
