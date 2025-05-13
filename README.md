@@ -194,6 +194,7 @@ Having issues? Check these common solutions:
    - Make sure no firewall is blocking the connection on port 42831
    - Restart both the DevTools app and your React app
    - Check the console logs with `enableLogs: true` for any error messages
+   - If the React Query data is too large the socket connection will crash! If you see the device connect and then disconnect with no logs this is what's happening. You'll need to fix your query cache to not be so large.
 
 4. **Data Not Syncing**
 
