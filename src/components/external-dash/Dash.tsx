@@ -7,6 +7,7 @@ import {DeviceSelection} from "./DeviceSelection";
 import {useDevToolsEventHandler} from "./hooks/useDevToolsEventHandler";
 import {LogConsole} from "./LogConsole";
 import {NetworkMonitor} from "./NetworkMonitor";
+import {ExpoDevTools} from "./ExpoDevTools";
 import {NoDevicesConnected} from "./NoDevicesConnected";
 import {User} from "./types/User";
 import "../../index.css";
@@ -350,6 +351,13 @@ export const Dash: React.FC<DashProps> = ({
 
         {/* Network Monitor */}
         <NetworkMonitor
+          isConnected={isDashboardConnected}
+          socket={socket}
+          selectedDevice={targetDevice}
+        />
+
+        {/* Expo DevTools */}
+        <ExpoDevTools
           isConnected={isDashboardConnected}
           socket={socket}
           selectedDevice={targetDevice}

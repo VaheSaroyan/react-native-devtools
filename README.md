@@ -147,22 +147,86 @@ React Native DevTools works with **any React-based application**, regardless of 
 
 If your platform can run React and connect to a socket server, it will work with these DevTools!
 
+## ✅ Implemented Features
+
+React Native DevTools has successfully implemented the following features:
+
+- 📊 **Storage Viewers**: Beautiful interfaces for viewing and modifying AsyncStorage
+- 🌐 **Network Request Monitoring**: Track API calls, WebSockets, and GraphQL requests
+- ❌ **Failed Request Tracking**: Easily identify and debug network failures
+- 🔄 **Remote Expo DevTools**: Trigger Expo DevTools commands remotely without using the command line
+
 ## 🔮 Future Plans
 
 React Native DevTools is actively being developed with exciting features on the roadmap:
 
-- 📊 **Storage Viewers**: Beautiful interfaces for viewing and modifying storage (AsyncStorage, MMKV, etc.)
-- 🌐 **Network Request Monitoring**: Track API calls, WebSockets, and GraphQL requests
-- ❌ **Failed Request Tracking**: Easily identify and debug network failures
-- 🔄 **Remote Expo DevTools**: Trigger Expo DevTools commands remotely without using the command line
 - 🧩 **Plugin System**: Allow community extensions for specialized debugging tasks
+- 📊 **Additional Storage Viewers**: Support for MMKV and other storage solutions
+- 🔌 **Enhanced Network Monitoring**: More detailed network request analysis
+- 🧪 **Test Runner Integration**: Run and monitor tests directly from DevTools
 - drizzle-studio-plugin
 
 Stay tuned for updates!
 
+## 🚀 Remote Expo DevTools
+
+The newly implemented Remote Expo DevTools feature allows you to trigger Expo DevTools commands remotely without using the command line. This makes it easier to debug and test your Expo applications.
+
+### Available Commands
+
+- **Reload**: Reload your app instantly
+- **Toggle Inspector**: Enable/disable the element inspector
+- **Toggle Performance Monitor**: Show/hide the performance monitor
+- **Toggle Element Inspector**: Enable/disable the element inspector
+- **Clear Cache**: Clear the app's cache
+- **Toggle Remote Debugging**: Enable/disable remote debugging
+- **Open Dev Menu**: Open the developer menu
+- **Take Screenshot**: Capture a screenshot of your app
+- **Shake Device**: Simulate device shake
+
+### How to Use
+
+1. Enable Expo DevTools in your app:
+
+```jsx
+useSyncQueriesExternal({
+  // ... other options
+  expoDevTools: {
+    enabled: true
+  }
+});
+```
+
+2. Implement the command handlers in your app:
+
+```jsx
+import { 
+  setExpoCommandImplementations,
+  useSyncQueriesExternal 
+} from "react-query-external-sync";
+
+// Implement the command handlers
+setExpoCommandImplementations({
+  reload: async () => {
+    // Implement reload functionality
+    // For example: await Updates.reloadAsync();
+  },
+  toggleInspector: async () => {
+    // Implement toggle inspector functionality
+    // For example: DevSettings.toggleElementInspector();
+  },
+  // ... other implementations
+});
+```
+
+3. Use the DevTools UI to trigger commands remotely:
+   - Connect to your device
+   - Click the Expo DevTools button in the dashboard
+   - Select a command to execute remotely
+
 ## 🤝 Contributing
 
-I welcome contributions! See [Development Guide](DEVELOPMENT.md) for details on:
+We welcome contributions! See [Development Guide](DEVELOPMENT.md) for details on:
 
 - Setting up the development environment
 - Building and testing
@@ -246,3 +310,7 @@ MIT
 ---
 
 Made with ❤️ by [LovesWorking](https://github.com/LovesWorking)
+
+## 🙏 Acknowledgements
+
+A huge thank you to [LovesWorking](https://github.com/LovesWorking) for creating the original React Native DevTools package, which provided an excellent foundation for this enhanced version. Your work has been instrumental in making React Native debugging easier and more powerful.

@@ -19,6 +19,11 @@ import {
   QueryActionMessage,
   QueryRequestInitialStateMessage,
 } from "../components/external-dash/useSyncQueriesWeb";
+import {
+  ExpoCommandActionMessage,
+  ExpoCommandResultMessage,
+  ExpoDevToolsRequestMessage,
+} from "../components/external-dash/shared/expoDevToolsTypes";
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -686,6 +691,80 @@ export default function socketHandle({ io }: Props) {
           .to(user.id)
           .emit("request-network-monitoring", { type: "request-network-monitoring", targetDeviceId: message.targetDeviceId }),
       "network monitoring request"
+    );
+  });
+
+  // ==========================================================
+  // Handle Expo command actions from the dashboard to the devices
+  // ==========================================================
+  socket.on("expo-command-action", (message: ExpoCommandActionMessage) => {
+    const deviceName = getDeviceFromDeviceId(message.targetDeviceId)?.deviceName;
+    console.log(
+      `${LOG_PREFIX} Expo command action from dashboard - Command: ${message.command}, Target: ${deviceName} (${message.targetDeviceId}), CommandId: ${message.commandId}`
+    );
+
+    withTargetUsers(
+      message.targetDeviceId,
+      (user) => io.to(user.id).emit("expo-command-action", message),
+      "expo command action"
+    );
+  });
+
+  // ==========================================================
+  // Handle Expo command results from devices to the dashboard
+  // ==========================================================
+  socket.on("expo-command-result", (message: ExpoCommandResultMessage) => {
+    const device = getDeviceFromDeviceId(message.persistentDeviceId);
+    console.log(
+      `${LOG_PREFIX} Expo command result received from: ${device?.deviceName}, Command: ${message.command.type}, Status: ${message.command.status}`
+    );
+
+    // Forward to all dashboard clients
+    if (dashboardClients.length === 0) {
+      console.log(
+        `${LOG_PREFIX} No dashboard clients connected to forward Expo command result to`
+      );
+      return;
+    }
+
+    console.log(
+      `${LOG_PREFIX} Forwarding Expo command result from ${device?.deviceName} to ${dashboardClients.length} dashboard(s)`
+    );
+
+    // Send to each dashboard client
+    for (const dashboardId of dashboardClients) {
+      try {
+        const socket = io.sockets.sockets.get(dashboardId);
+        if (socket) {
+          socket.emit("expo-command-result", message);
+        }
+      } catch (error) {
+        console.error(
+          `${LOG_PREFIX} Error sending Expo command result to dashboard ${dashboardId}:`,
+          error
+        );
+      }
+    }
+  });
+
+  // ==========================================================
+  // Handle Expo DevTools status request messages from the dashboard to the devices
+  // ==========================================================
+  socket.on("request-expo-devtools-status", (message: ExpoDevToolsRequestMessage) => {
+    const deviceName = getDeviceFromDeviceId(
+      message.targetDeviceId
+    )?.deviceName;
+    console.log(
+      `${LOG_PREFIX} Request Expo DevTools status - Target: ${deviceName} (${message.targetDeviceId})`
+    );
+
+    withTargetUsers(
+      message.targetDeviceId,
+      (user) =>
+        io
+          .to(user.id)
+          .emit("request-expo-devtools-status", { type: "request-expo-devtools-status", targetDeviceId: message.targetDeviceId }),
+      "expo devtools status request"
     );
   });
   });

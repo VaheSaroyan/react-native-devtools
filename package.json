@@ -62,6 +62,7 @@
     "@tanstack/query-devtools": "file:tanstack-query-devtools-5.74.7.tgz",
     "@tanstack/react-query": "^5.75.7",
     "@tanstack/react-query-devtools": "file:tanstack-react-query-devtools-5.75.7.tgz",
+    "@types/uuid": "^10.0.0",
     "bufferutil": "^4.0.9",
     "electron-log": "^5.3.3",
     "electron-squirrel-startup": "^1.0.1",
@@ -73,6 +74,7 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "utf-8-validate": "^6.0.5",
+    "uuid": "^11.1.0",
     "zustand": "^5.0.3"
   },
   "build": {
