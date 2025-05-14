@@ -40,13 +40,13 @@ The easiest way to connect your React application to the DevTools is by installi
 
 ```bash
 # Using npm
-npm install --save-dev react-query-external-sync socket.io-client
+npm install --save-dev react-native-devtools-sync socket.io-client
 
 # Using yarn
-yarn add -D react-query-external-sync socket.io-client
+yarn add -D react-native-devtools-sync socket.io-client
 
-# Using pnpm (recommended)
-pnpm add -D react-query-external-sync socket.io-client
+# Using pnpm
+pnpm add -D react-native-devtools-sync socket.io-client
 ```
 
 ## 🚀 Quick Start
