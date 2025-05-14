@@ -111,21 +111,14 @@ export const AsyncStorageViewer: React.FC<AsyncStorageViewerProps> = ({
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-20 left-4 z-40 flex items-center justify-center w-12 h-12 bg-[#1A1A1C] hover:bg-[#2D2D2F] text-[#F5F5F7] rounded-full shadow-[0_0.5rem_1rem_rgba(0,0,0,0.2)] border border-[#2D2D2F]/50 transition-all duration-500 ease-out hover:scale-110 hover:shadow-[0_0.5rem_1.5rem_rgba(59,130,246,0.2)]"
+        className="fixed bottom-4 left-4 z-40 flex items-center justify-center w-12 h-12 bg-[#1A1A1C] hover:bg-[#2D2D2F] text-[#F5F5F7] rounded-full shadow-[0_0.5rem_1rem_rgba(0,0,0,0.2)] border border-[#2D2D2F]/50 transition-all duration-500 ease-out hover:scale-110 hover:shadow-[0_0.5rem_1.5rem_rgba(59,130,246,0.2)]"
       >
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3zm0 5h16"
-          />
-        </svg>
+          <svg width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M6.75 2.75C4.95507 2.75 3.5 4.20507 3.5 6V18C3.5 19.7949 4.95507 21.25 6.75 21.25H12V2.75H6.75ZM13.5 2.75V21.25H18.75C20.5449 21.25 22 19.7949 22 18V6C22 4.20507 20.5449 2.75 18.75 2.75H13.5ZM2 6C2 3.37665 4.12665 1.25 6.75 1.25H18.75C21.3734 1.25 23.5 3.37665 23.5 6V18C23.5 20.6234 21.3734 22.75 18.75 22.75H6.75C4.12665 22.75 2 20.6234 2 18V6ZM5.5 6C5.5 5.58579 5.83579 5.25 6.25 5.25H9.25C9.66421 5.25 10 5.58579 10 6C10 6.41421 9.66421 6.75 9.25 6.75H6.25C5.83579 6.75 5.5 6.41421 5.5 6ZM15.5 6C15.5 5.58579 15.8358 5.25 16.25 5.25H19.25C19.6642 5.25 20 5.58579 20 6C20 6.41421 19.6642 6.75 19.25 6.75H16.25C15.8358 6.75 15.5 6.41421 15.5 6ZM5.5 10C5.5 9.58579 5.83579 9.25 6.25 9.25H9.25C9.66421 9.25 10 9.58579 10 10C10 10.4142 9.66421 10.75 9.25 10.75H6.25C5.83579 10.75 5.5 10.4142 5.5 10ZM15.5 10C15.5 9.58579 15.8358 9.25 16.25 9.25H19.25C19.6642 9.25 20 9.58579 20 10C20 10.4142 19.6642 10.75 19.25 10.75H16.25C15.8358 10.75 15.5 10.4142 15.5 10Z" fill="currentColor"/>
+              <path d="M18.75 17.5C18.75 18.0523 18.3023 18.5 17.75 18.5C17.1977 18.5 16.75 18.0523 16.75 17.5C16.75 16.9477 17.1977 16.5 17.75 16.5C18.3023 16.5 18.75 16.9477 18.75 17.5Z" fill="currentColor"/>
+              <path d="M8.75 17.5C8.75 18.0523 8.30228 18.5 7.75 18.5C7.19772 18.5 6.75 18.0523 6.75 17.5C6.75 16.9477 7.19772 16.5 7.75 16.5C8.30228 16.5 8.75 16.9477 8.75 17.5Z" fill="currentColor"/>
+          </svg>
+
       </button>
     );
   }
@@ -136,19 +129,11 @@ export const AsyncStorageViewer: React.FC<AsyncStorageViewerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2D2D2F]/50">
           <div className="flex items-center gap-3">
-            <svg
-              className="w-5 h-5 text-blue-400"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3zm0 5h16"
-              />
-            </svg>
+              <svg  className="w-5 h-5 text-blue-400" width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M6.75 2.75C4.95507 2.75 3.5 4.20507 3.5 6V18C3.5 19.7949 4.95507 21.25 6.75 21.25H12V2.75H6.75ZM13.5 2.75V21.25H18.75C20.5449 21.25 22 19.7949 22 18V6C22 4.20507 20.5449 2.75 18.75 2.75H13.5ZM2 6C2 3.37665 4.12665 1.25 6.75 1.25H18.75C21.3734 1.25 23.5 3.37665 23.5 6V18C23.5 20.6234 21.3734 22.75 18.75 22.75H6.75C4.12665 22.75 2 20.6234 2 18V6ZM5.5 6C5.5 5.58579 5.83579 5.25 6.25 5.25H9.25C9.66421 5.25 10 5.58579 10 6C10 6.41421 9.66421 6.75 9.25 6.75H6.25C5.83579 6.75 5.5 6.41421 5.5 6ZM15.5 6C15.5 5.58579 15.8358 5.25 16.25 5.25H19.25C19.6642 5.25 20 5.58579 20 6C20 6.41421 19.6642 6.75 19.25 6.75H16.25C15.8358 6.75 15.5 6.41421 15.5 6ZM5.5 10C5.5 9.58579 5.83579 9.25 6.25 9.25H9.25C9.66421 9.25 10 9.58579 10 10C10 10.4142 9.66421 10.75 9.25 10.75H6.25C5.83579 10.75 5.5 10.4142 5.5 10ZM15.5 10C15.5 9.58579 15.8358 9.25 16.25 9.25H19.25C19.6642 9.25 20 9.58579 20 10C20 10.4142 19.6642 10.75 19.25 10.75H16.25C15.8358 10.75 15.5 10.4142 15.5 10Z" fill="currentColor"/>
+                  <path d="M18.75 17.5C18.75 18.0523 18.3023 18.5 17.75 18.5C17.1977 18.5 16.75 18.0523 16.75 17.5C16.75 16.9477 17.1977 16.5 17.75 16.5C18.3023 16.5 18.75 16.9477 18.75 17.5Z" fill="currentColor"/>
+                  <path d="M8.75 17.5C8.75 18.0523 8.30228 18.5 7.75 18.5C7.19772 18.5 6.75 18.0523 6.75 17.5C6.75 16.9477 7.19772 16.5 7.75 16.5C8.30228 16.5 8.75 16.9477 8.75 17.5Z" fill="currentColor"/>
+              </svg>
             <h2 className="text-lg font-medium text-white">AsyncStorage Viewer</h2>
           </div>
 

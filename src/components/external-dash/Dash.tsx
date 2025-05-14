@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { User } from "./types/User";
-import "../../index.css";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools/production";
-import { useLogStore } from "./utils/logStore";
-import { onDevToolsEvent } from "./utils/devToolsEvents";
-import { useDevToolsEventHandler } from "./hooks/useDevToolsEventHandler";
+import {ReactQueryDevtools} from "@tanstack/react-query-devtools/production";
+import React, {useEffect, useState} from "react";
 import useConnectedUsers from "./_hooks/useConnectedUsers";
+import {AsyncStorageViewer} from "./AsyncStorageViewer";
 
-import { DeviceSelection } from "./DeviceSelection";
-import { UserInfo } from "./UserInfo";
-import { LogConsole } from "./LogConsole";
-import { NoDevicesConnected } from "./NoDevicesConnected";
-import { AsyncStorageViewer } from "./AsyncStorageViewer";
+import {DeviceSelection} from "./DeviceSelection";
+import {useDevToolsEventHandler} from "./hooks/useDevToolsEventHandler";
+import {LogConsole} from "./LogConsole";
+import {NetworkMonitor} from "./NetworkMonitor";
+import {NoDevicesConnected} from "./NoDevicesConnected";
+import {User} from "./types/User";
+import "../../index.css";
+import {UserInfo} from "./UserInfo";
+import {useLogStore} from "./utils/logStore";
 
 export const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
   const normalizedPlatform = platform?.toLowerCase() || "";
@@ -343,6 +343,13 @@ export const Dash: React.FC<DashProps> = ({
 
         {/* AsyncStorage Viewer */}
         <AsyncStorageViewer
+          isConnected={isDashboardConnected}
+          socket={socket}
+          selectedDevice={targetDevice}
+        />
+
+        {/* Network Monitor */}
+        <NetworkMonitor
           isConnected={isDashboardConnected}
           socket={socket}
           selectedDevice={targetDevice}

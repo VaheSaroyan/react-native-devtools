@@ -10,6 +10,11 @@ import {
   AsyncStorageSyncMessage,
 } from "../components/external-dash/shared/asyncStorageTypes";
 import {
+  NetworkMonitoringActionMessage,
+  NetworkRequestMessage,
+  NetworkRequestSyncMessage,
+} from "../components/external-dash/shared/networkTypes";
+import {
   OnlineManagerMessage,
   QueryActionMessage,
   QueryRequestInitialStateMessage,
@@ -607,6 +612,80 @@ export default function socketHandle({ io }: Props) {
           .to(user.id)
           .emit("request-async-storage", { type: "request-async-storage",targetDeviceId: message.targetDeviceId }),
       "async storage request"
+    );
+  });
+
+  // ==========================================================
+  // Handle network request sync messages from devices to the dashboard
+  // ==========================================================
+  socket.on("network-request-sync", (message: NetworkRequestSyncMessage) => {
+    const device = getDeviceFromDeviceId(message.persistentDeviceId);
+    console.log(
+      `${LOG_PREFIX} Network request sync received from: ${device?.deviceName}, Type: ${message.request.type}, URL: ${message.request.url}`
+    );
+
+    // Forward to all dashboard clients
+    if (dashboardClients.length === 0) {
+      console.log(
+        `${LOG_PREFIX} No dashboard clients connected to forward network request sync to`
+      );
+      return;
+    }
+
+    console.log(
+      `${LOG_PREFIX} Forwarding network request sync from ${device?.deviceName} to ${dashboardClients.length} dashboard(s)`
+    );
+      console.log({message});
+      // Send to each dashboard client
+    for (const dashboardId of dashboardClients) {
+      try {
+        const socket = io.sockets.sockets.get(dashboardId);
+        if (socket) {
+          socket.emit("network-request-sync", message);
+        }
+      } catch (error) {
+        console.error(
+          `${LOG_PREFIX} Error sending network request sync to dashboard ${dashboardId}:`,
+          error
+        );
+      }
+    }
+  });
+
+  // ==========================================================
+  // Handle network monitoring action messages from the dashboard to the devices
+  // ==========================================================
+  socket.on("network-monitoring-action", (message: NetworkMonitoringActionMessage) => {
+    const deviceName = getDeviceFromDeviceId(message.targetDeviceId)?.deviceName;
+    console.log(
+      `${LOG_PREFIX} Network monitoring action from dashboard - Action: ${message.action}, Target: ${deviceName} (${message.targetDeviceId})`
+    );
+
+    withTargetUsers(
+      message.targetDeviceId,
+      (user) => io.to(user.id).emit("network-monitoring-action", message),
+      "network monitoring action"
+    );
+  });
+
+  // ==========================================================
+  // Handle network request messages from the dashboard to the devices
+  // ==========================================================
+  socket.on("request-network-monitoring", (message: NetworkRequestMessage) => {
+    const deviceName = getDeviceFromDeviceId(
+      message.targetDeviceId
+    )?.deviceName;
+    console.log(
+      `${LOG_PREFIX} Request network monitoring state - Target: ${deviceName} (${message.targetDeviceId})`
+    );
+
+    withTargetUsers(
+      message.targetDeviceId,
+      (user) =>
+        io
+          .to(user.id)
+          .emit("request-network-monitoring", { type: "request-network-monitoring", targetDeviceId: message.targetDeviceId }),
+      "network monitoring request"
     );
   });
   });

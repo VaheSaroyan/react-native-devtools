@@ -4,6 +4,7 @@ import { onlineManager, QueryClient } from "@tanstack/react-query";
 
 import { Dehydrate } from "./hydration";
 import { SyncMessage } from "./types";
+import { NetworkRequest, NetworkRequestSyncMessage, NetworkMonitoringActionMessage } from "../components/external-dash/shared/networkTypes";
 import { useMySocket } from "./useMySocket";
 import { PlatformOS } from "./platformUtils";
 import { log } from "./utils/logger";
@@ -432,16 +433,98 @@ export function useSyncQueriesExternal({
       socket.emit("query-sync", syncMessage);
     });
 
-    // ==========================================================
-    // Cleanup function to unsubscribe from all events
-    // ==========================================================
-    return () => {
-      log(`${logPrefix} Cleaning up event listeners`, enableLogs);
-      queryActionSubscription?.off();
-      initialStateSubscription?.off();
-      onlineManagerSubscription?.off();
-      unsubscribe();
-    };
+  // ==========================================================
+  // Network Monitoring - Handle network monitoring actions
+  // ==========================================================
+  const networkMonitoringSubscription = socket.on(
+    "network-monitoring-action",
+    (message: NetworkMonitoringActionMessage) => {
+      const { action, targetDeviceId } = message;
+      if (!deviceId) {
+        log(`${logPrefix} No persistent device ID found`, enableLogs, "warn");
+        return;
+      }
+      
+      // Only process if this message targets the current device
+      if (
+        !shouldProcessMessage({
+          targetDeviceId: targetDeviceId,
+          currentDeviceId: deviceId,
+        })
+      ) {
+        return;
+      }
+
+      log(
+        `${logPrefix} Received network-monitoring action: ${action}`,
+        enableLogs
+      );
+
+      // Here you would implement the logic to enable/disable network monitoring
+      // This would typically involve setting up or removing XHR/fetch interceptors
+      // and WebSocket listeners in your app
+      
+      switch (action) {
+        case "ACTION-ENABLE-NETWORK-MONITORING": {
+          log(`${logPrefix} Enabling network monitoring`, enableLogs);
+          // Your app should implement this functionality
+          // For example: setupNetworkInterceptors();
+          break;
+        }
+        case "ACTION-DISABLE-NETWORK-MONITORING": {
+          log(`${logPrefix} Disabling network monitoring`, enableLogs);
+          // Your app should implement this functionality
+          // For example: removeNetworkInterceptors();
+          break;
+        }
+      }
+    }
+  );
+
+  // ==========================================================
+  // Handle network monitoring requests from dashboard
+  // ==========================================================
+  const networkRequestSubscription = socket.on(
+    "request-network-monitoring",
+    (message: { type: string; targetDeviceId: string }) => {
+      const { targetDeviceId } = message;
+      if (!deviceId) {
+        log(`${logPrefix} No persistent device ID found`, enableLogs, "warn");
+        return;
+      }
+      
+      // Only process if this message targets the current device
+      if (
+        !shouldProcessMessage({
+          targetDeviceId: targetDeviceId,
+          currentDeviceId: deviceId,
+        })
+      ) {
+        return;
+      }
+
+      log(
+        `${logPrefix} Dashboard is requesting network monitoring state`,
+        enableLogs
+      );
+      
+      // Your app should implement this functionality to send current network requests
+      // For example: sendCurrentNetworkRequests();
+    }
+  );
+
+  // ==========================================================
+  // Cleanup function to unsubscribe from all events
+  // ==========================================================
+  return () => {
+    log(`${logPrefix} Cleaning up event listeners`, enableLogs);
+    queryActionSubscription?.off();
+    initialStateSubscription?.off();
+    onlineManagerSubscription?.off();
+    networkMonitoringSubscription?.off();
+    networkRequestSubscription?.off();
+    unsubscribe();
+  };
   }, [queryClient, socket, deviceName, isConnected, deviceId, enableLogs]);
 
   return { connect, disconnect, isConnected, socket };
