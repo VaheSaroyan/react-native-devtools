@@ -22,11 +22,11 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: "./assets/icon", // No file extension required
-    appBundleId: "com.lovesworking.rn-dev-tools",
+    appBundleId: "com.vs.react-native-devtools",
     appCategoryType: "public.app-category.developer-tools",
-    executableName: "React Native DevTools",
+    executableName: "ReactNativeDevTools",
     osxSign: {
-      identity: "6EC9AE0A608BB7CBBA6BCC7936689773E76D63F0",
+      identity: "8D652F5D039DC2AA43E56A94A2FC76B1899BA1A6",
     },
     // The osxSign config comes with defaults that work out of the box in most cases, so we recommend you start with an empty configuration object.
     // For a full list of configuration options, see  https://js.electronforge.io/modules/_electron_forge_shared_types.InternalOptions.html#OsxSignOptions
@@ -48,8 +48,8 @@ const config: ForgeConfig = {
   publishers: [
     new PublisherGithub({
       repository: {
-        owner: "lovesworking", // Replace with your GitHub username or organization
-        name: "rn-better-dev-tools", // Replace with your repository name
+        owner: "VaheSaroyan", // Replace with your GitHub username or organization
+        name: "react-native-devtools", // Replace with your repository name
       },
       prerelease: false, // Set to true if you want to mark releases as pre-releases
     }),

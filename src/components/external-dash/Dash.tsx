@@ -312,9 +312,9 @@ export const Dash: React.FC<DashProps> = ({
         </main>
 
         {/* Console Panel */}
-        <div className="fixed bottom-4 right-4 z-40">
+        <div className="fixed bottom-4 right-4">
           {isVisible ? (
-            <div className="fixed inset-x-0 bottom-0 z-40 bg-[#0A0A0C] border-t border-[#2D2D2F]/50 shadow-2xl transition-all duration-500 ease-out transform animate-slideUpFade">
+            <div className="fixed inset-x-0 bottom-0 bg-[#0A0A0C] border-t border-[#2D2D2F]/50 shadow-2xl transition-all duration-500 ease-out transform animate-slideUpFade">
               <LogConsole
                 onClose={() => setIsVisible(false)}
                 allDevices={allDevices}
